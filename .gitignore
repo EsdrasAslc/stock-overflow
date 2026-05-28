@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 env
 .vscode
+.env
+.env.local
+.env.*
+
