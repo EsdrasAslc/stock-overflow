@@ -1,0 +1,76 @@
+.statusSection {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #3a3a3a;
+  margin-bottom: 24px;
+}
+
+.statusFlex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  color: #f3f4f6;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.subtitle {
+  color: #9ca3af;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 0;
+}
+
+.indicatorContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.statusText {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.textActive {
+  color: #34d399;
+}
+
+.textIdle {
+  color: #6b7280;
+}
+
+/* ─── Indicador (bolinha animada) ─── */
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.idle {
+  background-color: #4b5563;
+  animation: breathe 2s infinite ease-in-out;
+}
+
+.active {
+  background-color: #10b981;
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.1); }
+}
+
+@keyframes ping {
+  0%   { transform: scale(0.8); box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.7); }
+  70%  { transform: scale(1);   box-shadow: 0 0 0 14px rgba(16, 185, 129, 0);   }
+  100% { transform: scale(0.8); box-shadow: 0 0 0 0   rgba(16, 185, 129, 0);   }
+}
