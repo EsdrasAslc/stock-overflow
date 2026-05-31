@@ -1,0 +1,76 @@
+package com.stockoverflow.estoque_api.service;
+
+import com.stockoverflow.estoque_api.dto.UsuarioRequestDTO;
+import com.stockoverflow.estoque_api.dto.UsuarioResponseDTO;
+import com.stockoverflow.estoque_api.model.Usuario;
+import com.stockoverflow.estoque_api.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class UsuarioService {
+
+    private final UsuarioRepository repository;
+
+    public List<UsuarioResponseDTO> listarTodos() {
+        return repository.findAll().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public UsuarioResponseDTO buscarPorId(String id) {
+        Usuario usuario = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        return toDTO(usuario);
+    }
+
+    public UsuarioResponseDTO criar(UsuarioRequestDTO dto) {
+        if (repository.findByCpf(dto.cpf()).isPresent()) {
+            throw new RuntimeException("Já existe um usuário com o CPF: " + dto.cpf());
+        }
+        Usuario usuario = Usuario.builder()
+                .nome(dto.nome())
+                .cpf(dto.cpf())
+                .password(dto.password())
+                .role(dto.role())
+                .build();
+        return toDTO(repository.save(usuario));
+    }
+
+    public UsuarioResponseDTO atualizar(String id, UsuarioRequestDTO dto) {
+        Usuario usuario = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        usuario.setNome(dto.nome());
+        usuario.setPassword(dto.password());
+        usuario.setRole(dto.role());
+        usuario.setCpf(dto.cpf());
+        return toDTO(repository.save(usuario));
+    }
+
+    public void deletar(String id) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("Usuário não encontrado");
+        }
+        repository.deleteById(id);
+    }
+
+    public UsuarioResponseDTO buscarPorCpf(String cpf) {
+        Usuario usuario = repository.findByCpf(cpf)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        return toDTO(usuario);
+    }
+
+    public UsuarioResponseDTO toDTO(Usuario usuario) {
+        if (usuario == null)
+            return null;
+        return new UsuarioResponseDTO(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getCpf(),
+                usuario.getRole() != null ? usuario.getRole().name() : null);
+    }
+}

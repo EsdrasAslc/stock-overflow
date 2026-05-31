@@ -1,10 +1,15 @@
 package com.stockoverflow.estoque_api.service;
 
-import com.stockoverflow.estoque_api.dto.RobotDTO;
+import com.stockoverflow.estoque_api.dto.ProdutoResponseDTO;
+import com.stockoverflow.estoque_api.dto.RobotRequestDTO;
+import com.stockoverflow.estoque_api.dto.RobotResponseDTO;
 import com.stockoverflow.estoque_api.model.Robot;
 import com.stockoverflow.estoque_api.repository.RobotRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -13,22 +18,38 @@ public class RobotService {
     private final RobotRepository repository;
     private final ProdutoService produtoService;
 
-    public RobotDTO buscarPorId(String id) {
+    public List<RobotResponseDTO> listarTodos() {
+        return repository.findAll().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public RobotResponseDTO buscarPorId(String id) {
         Robot robot = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Robô não encontrado"));
         return toDTO(robot);
     }
 
-    public Robot salvar(Robot robot) {
-        return repository.save(robot);
+    public RobotResponseDTO criar(RobotRequestDTO dto) {
+        Robot robot = Robot.builder()
+                .id(dto.id())
+                .status(dto.status())
+                .build();
+        return toDTO(repository.save(robot));
     }
 
-    public RobotDTO toDTO(Robot robot) {
+    public void deletar(String id) {
+        repository.deleteById(id);
+    }
+
+    public RobotResponseDTO toDTO(Robot robot) {
         if (robot == null) return null;
-        return RobotDTO.builder()
-                .id(robot.getId())
-                .status(robot.getStatus())
-                .produtoAtual(produtoService.toDTO(robot.getProdutoAtual()))
-                .build();
+        ProdutoResponseDTO produtoAtual = produtoService.toDTO(robot.getProdutoAtual());
+        return new RobotResponseDTO(
+                robot.getId(),
+                robot.getStatus() != null ? robot.getStatus().name() : null,
+                produtoAtual,
+                robot.getEstanteAtual() != null ? robot.getEstanteAtual().getId() : null
+        );
     }
 }

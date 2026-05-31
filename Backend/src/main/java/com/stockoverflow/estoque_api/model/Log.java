@@ -23,11 +23,21 @@ public class Log {
     private LocalDateTime timestamp;
 
     @Column(nullable = false)
-    private String tipo;
+    @Enumerated(EnumType.STRING)
+    private TipoLog tipo;
 
     @Column(nullable = false)
     private String mensagem;
 
-    private String estanteId;
-    private String robotId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estante_id")
+    private Estante estante;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "robot_id")
+    private Robot robot;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "movimentacao_id")
+    private RobotMoviment movimentacao;
 }

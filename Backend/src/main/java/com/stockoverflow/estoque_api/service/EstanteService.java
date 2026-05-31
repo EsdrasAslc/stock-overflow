@@ -1,8 +1,11 @@
 package com.stockoverflow.estoque_api.service;
 
-import com.stockoverflow.estoque_api.dto.EstanteDTO;
-import com.stockoverflow.estoque_api.dto.RobotDTO;
+import com.stockoverflow.estoque_api.dto.EstanteRequestDTO;
+import com.stockoverflow.estoque_api.dto.EstanteResponseDTO;
+import com.stockoverflow.estoque_api.dto.RobotResponseDTO;
+import com.stockoverflow.estoque_api.model.Armazem;
 import com.stockoverflow.estoque_api.model.Estante;
+import com.stockoverflow.estoque_api.repository.ArmazemRepository;
 import com.stockoverflow.estoque_api.repository.EstanteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,41 +16,43 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EstanteService {
+
     private final EstanteRepository repository;
+    private final ArmazemRepository armazemRepository;
     private final RobotService robotService;
 
-    public EstanteDTO toDTO(Estante estante) {
+    public EstanteResponseDTO toDTO(Estante estante) {
         if (estante == null)
             return null;
-        return EstanteDTO.builder()
-                .id(estante.getId())
-                .nome(estante.getNome())
-                .capacidadeMaxima(estante.getCapacidadeMaxima())
-                .capacidadeAtual(estante.getCapacidadeAtual())
-                .armazemId(estante.getArmazem() != null ? estante.getArmazem().getId() : null)
-                .robot(robotService.toDTO(estante.getRobot()))
-                .build();
+        return new EstanteResponseDTO(
+                estante.getId(),
+                estante.getNome(),
+                estante.getCapacidadeMaxima(),
+                estante.getCapacidadeAtual(),
+                estante.getArmazem() != null ? estante.getArmazem().getId() : null,
+                robotService.toDTO(estante.getRobot())
+        );
     }
 
-    public List<EstanteDTO> listarTodos() {
+    public List<EstanteResponseDTO> listarTodos() {
         return repository.findAll().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<EstanteDTO> listarPorArmazem(String armazemId) {
+    public List<EstanteResponseDTO> listarPorArmazem(String armazemId) {
         return repository.findByArmazemId(armazemId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public EstanteDTO buscarPorId(String id) {
+    public EstanteResponseDTO buscarPorId(String id) {
         Estante estante = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Estante não encontrada"));
         return toDTO(estante);
     }
 
-    public RobotDTO buscarRoboDaEstante(String estanteId) {
+    public RobotResponseDTO buscarRoboDaEstante(String estanteId) {
         Estante estante = repository.findById(estanteId)
                 .orElseThrow(() -> new RuntimeException("Estante não encontrada"));
         if (estante.getRobot() == null) {
@@ -56,13 +61,19 @@ public class EstanteService {
         return robotService.toDTO(estante.getRobot());
     }
 
-    public Estante salvar(Estante estante) {
-        return repository.save(estante);
+    public EstanteResponseDTO criar(EstanteRequestDTO dto) {
+        Armazem armazem = armazemRepository.findById(dto.armazemId())
+                .orElseThrow(() -> new RuntimeException("Armazém não encontrado"));
+        Estante estante = Estante.builder()
+                .nome(dto.nome())
+                .capacidadeMaxima(dto.capacidadeMaxima())
+                .capacidadeAtual(0)
+                .armazem(armazem)
+                .build();
+        return toDTO(repository.save(estante));
     }
 
-    public Estante excluirPorId(String id) {
+    public void excluirPorId(String id) {
         repository.deleteById(id);
-        return null;
     }
-
 }

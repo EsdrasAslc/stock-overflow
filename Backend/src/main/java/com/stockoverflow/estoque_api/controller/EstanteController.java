@@ -1,12 +1,14 @@
 package com.stockoverflow.estoque_api.controller;
 
-import com.stockoverflow.estoque_api.dto.EstanteDTO;
-import com.stockoverflow.estoque_api.dto.ProdutoDTO;
-import com.stockoverflow.estoque_api.dto.RobotDTO;
-import com.stockoverflow.estoque_api.model.Estante;
+import com.stockoverflow.estoque_api.dto.EstanteRequestDTO;
+import com.stockoverflow.estoque_api.dto.EstanteResponseDTO;
+import com.stockoverflow.estoque_api.dto.ProdutoResponseDTO;
+import com.stockoverflow.estoque_api.dto.RobotResponseDTO;
 import com.stockoverflow.estoque_api.service.EstanteService;
 import com.stockoverflow.estoque_api.service.ProdutoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,27 +21,28 @@ public class EstanteController {
     private final ProdutoService produtoService;
 
     @GetMapping("/api/estantes")
-    public List<EstanteDTO> listarTodos() {
+    public List<EstanteResponseDTO> listarTodos() {
         return estanteService.listarTodos();
     }
 
     @GetMapping("/api/estantes/{id}")
-    public EstanteDTO buscarPorId(@PathVariable String id) {
+    public EstanteResponseDTO buscarPorId(@PathVariable String id) {
         return estanteService.buscarPorId(id);
     }
 
     @PostMapping("/api/estantes")
-    public Estante salvar(@RequestBody Estante estante) {
-        return estanteService.salvar(estante);
+    @ResponseStatus(HttpStatus.CREATED)
+    public EstanteResponseDTO criar(@Valid @RequestBody EstanteRequestDTO dto) {
+        return estanteService.criar(dto);
     }
 
     @GetMapping("/api/armazens/{armazemId}/estantes")
-    public List<EstanteDTO> listarEstantesPorArmazem(@PathVariable String armazemId) {
+    public List<EstanteResponseDTO> listarEstantesPorArmazem(@PathVariable String armazemId) {
         return estanteService.listarPorArmazem(armazemId);
     }
 
     @GetMapping("/api/estantes/{estanteId}/produtos")
-    public List<ProdutoDTO> listarProdutosDaEstante(@PathVariable String estanteId) {
+    public List<ProdutoResponseDTO> listarProdutosDaEstante(@PathVariable String estanteId) {
         return produtoService.buscarPorEstante(estanteId);
     }
 
@@ -48,12 +51,13 @@ public class EstanteController {
             "/api/estantes/{estanteId}/robotstatus",
             "/api/estantes/{estanteId}/robot-status"
     })
-    public RobotDTO buscarStatusDoRoboDaEstante(@PathVariable String estanteId) {
+    public RobotResponseDTO buscarStatusDoRoboDaEstante(@PathVariable String estanteId) {
         return estanteService.buscarRoboDaEstante(estanteId);
     }
 
     @DeleteMapping("/api/estantes/{id}")
-    public Estante excluirPorId(@PathVariable String id) {
-        return estanteService.excluirPorId(id);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void excluirPorId(@PathVariable String id) {
+        estanteService.excluirPorId(id);
     }
 }

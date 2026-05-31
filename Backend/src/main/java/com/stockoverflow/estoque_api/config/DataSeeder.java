@@ -32,13 +32,13 @@ public class DataSeeder implements CommandLineRunner {
             // 2. Criar Robôs (inicialmente sem produto atual)
             Robot robot1 = Robot.builder()
                     .id("ROB-01")
-                    .status("EM_MOVIMENTO")
+                    .status(RobotStatus.EM_MOVIMENTO)
                     .build();
             robot1 = robotRepository.save(robot1);
 
             Robot robot2 = Robot.builder()
                     .id("ROB-02")
-                    .status("AGUARDANDO")
+                    .status(RobotStatus.AGUARDANDO)
                     .build();
             robot2 = robotRepository.save(robot2);
 
@@ -92,19 +92,19 @@ public class DataSeeder implements CommandLineRunner {
             // 6. Criar Logs Históricos
             Log log1 = Log.builder()
                     .timestamp(LocalDateTime.now().minusMinutes(10))
-                    .tipo("ROBO_ACAO")
+                    .tipo(TipoLog.LOGISTICA)
                     .mensagem("Robô iniciou movimentação do produto Parafuso de Aço")
-                    .estanteId("EST-01")
-                    .robotId("ROB-01")
+                    .estante(estante1)
+                    .robot(robot1)
                     .build();
             logRepository.save(log1);
 
             Log log2 = Log.builder()
                     .timestamp(LocalDateTime.now().minusMinutes(2))
-                    .tipo("ROBO_ACAO")
+                    .tipo(TipoLog.LOGISTICA)
                     .mensagem("Robô ROB-01 transportando Parafuso de Aço na Estante A")
-                    .estanteId("EST-01")
-                    .robotId("ROB-01")
+                    .estante(estante1)
+                    .robot(robot1)
                     .build();
             logRepository.save(log2);
 

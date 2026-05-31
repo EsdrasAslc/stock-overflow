@@ -17,9 +17,14 @@ public class Robot {
     private String id; // e.g. "ROB-01"
 
     @Column(nullable = false)
-    private String status; // e.g. "EM_MOVIMENTO", "AGUARDANDO"
+    @Enumerated(EnumType.STRING)
+    private RobotStatus status; // e.g. "EM_MOVIMENTO", "AGUARDANDO"
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_atual_id")
     private Produto produtoAtual;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estante_atual_id")
+    private Estante estanteAtual;
 }
