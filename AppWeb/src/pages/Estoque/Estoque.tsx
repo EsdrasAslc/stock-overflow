@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Package, Search, Calendar, AlertCircle, List, LayoutGrid, ArrowLeft, Plus } from 'lucide-react'
+import { Package, Search, Calendar, AlertCircle, List, LayoutGrid, ArrowLeft, Plus, ArrowDownCircle, ArrowUpCircle, X } from 'lucide-react'
 import styles from './Estoque.module.css'
 
 interface Product {
@@ -26,9 +26,156 @@ const shelfPositions = [
   '1A1','1A2','1A3','1A4',
 ]
 
+// ─── Modal Entrada ────────────────────────────────────────────────────────────
+function ModalEntrada({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ produto: '', quantidade: '', posicao: '', fornecedor: '', nf: '' })
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const handle = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const submit = () => {
+    if (!form.produto || !form.quantidade || !form.posicao) return
+    setLoading(true)
+    setTimeout(() => { setLoading(false); setSuccess(true) }, 1200)
+  }
+  return (
+    <div style={overlay}>
+      <div style={modal}>
+        <div style={modalHeader}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:36, height:36, borderRadius:8, background:'#0d2e22', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <ArrowDownCircle size={18} color="#10b981" />
+            </div>
+            <h2 style={{ margin:0, fontSize:17, color:'#f3f4f6' }}>Registrar Entrada</h2>
+          </div>
+          <button onClick={onClose} style={closeBtn}><X size={18} /></button>
+        </div>
+        {success ? (
+          <div style={{ textAlign:'center', padding:'32px 0' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
+            <p style={{ color:'#10b981', fontWeight:600, fontSize:15, margin:0 }}>Entrada registrada com sucesso!</p>
+            <button onClick={onClose} style={{ ...btnPrimary, marginTop:20, background:'#10b981' }}>Fechar</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Produto *</label>
+                <select style={inputStyle} value={form.produto} onChange={e => handle('produto', e.target.value)}>
+                  <option value="">Selecionar...</option>
+                  {mockInventory.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name}</option>)}
+                </select>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Quantidade *</label>
+                <input style={inputStyle} type="number" min={1} placeholder="0" value={form.quantidade} onChange={e => handle('quantidade', e.target.value)} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Posição *</label>
+                <input style={inputStyle} type="text" placeholder="Ex: 1A1" value={form.posicao} onChange={e => handle('posicao', e.target.value)} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Fornecedor</label>
+                <input style={inputStyle} type="text" placeholder="Nome do fornecedor" value={form.fornecedor} onChange={e => handle('fornecedor', e.target.value)} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6, gridColumn:'span 2' }}>
+                <label style={labelStyle}>Nota fiscal</label>
+                <input style={inputStyle} type="text" placeholder="Nº da NF" value={form.nf} onChange={e => handle('nf', e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
+              <button onClick={onClose} style={btnSecondary}>Cancelar</button>
+              <button onClick={submit} disabled={loading} style={{ ...btnPrimary, background:'#10b981', opacity: loading ? 0.7 : 1 }}>
+                {loading ? 'Enviando...' : 'Confirmar entrada'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Modal Saída ──────────────────────────────────────────────────────────────
+function ModalSaida({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ produto: '', quantidade: '', motivo: '' })
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const handle = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const submit = () => {
+    if (!form.produto || !form.quantidade) return
+    setLoading(true)
+    setTimeout(() => { setLoading(false); setSuccess(true) }, 1200)
+  }
+  return (
+    <div style={overlay}>
+      <div style={modal}>
+        <div style={modalHeader}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:36, height:36, borderRadius:8, background:'#2d0f0f', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <ArrowUpCircle size={18} color="#f87171" />
+            </div>
+            <h2 style={{ margin:0, fontSize:17, color:'#f3f4f6' }}>Registrar Saída</h2>
+          </div>
+          <button onClick={onClose} style={closeBtn}><X size={18} /></button>
+        </div>
+        {success ? (
+          <div style={{ textAlign:'center', padding:'32px 0' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
+            <p style={{ color:'#10b981', fontWeight:600, fontSize:15, margin:0 }}>Saída registrada com sucesso!</p>
+            <button onClick={onClose} style={{ ...btnPrimary, marginTop:20, background:'#10b981' }}>Fechar</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Produto *</label>
+                <select style={inputStyle} value={form.produto} onChange={e => handle('produto', e.target.value)}>
+                  <option value="">Selecionar...</option>
+                  {mockInventory.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name} ({p.qty} un.)</option>)}
+                </select>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Quantidade *</label>
+                <input style={inputStyle} type="number" min={1} placeholder="0" value={form.quantidade} onChange={e => handle('quantidade', e.target.value)} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6, gridColumn:'span 2' }}>
+                <label style={labelStyle}>Motivo</label>
+                <select style={inputStyle} value={form.motivo} onChange={e => handle('motivo', e.target.value)}>
+                  <option value="">Selecionar...</option>
+                  <option>Venda</option>
+                  <option>Uso interno</option>
+                  <option>Devolução ao fornecedor</option>
+                  <option>Avaria / Descarte</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
+              <button onClick={onClose} style={btnSecondary}>Cancelar</button>
+              <button onClick={submit} disabled={loading} style={{ ...btnPrimary, background:'#ef4444', opacity: loading ? 0.7 : 1 }}>
+                {loading ? 'Enviando...' : 'Confirmar saída'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const overlay:     React.CSSProperties = { position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }
+const modal:       React.CSSProperties = { background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:16, padding:28, width:'100%', maxWidth:520 }
+const modalHeader: React.CSSProperties = { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }
+const closeBtn:    React.CSSProperties = { background:'transparent', border:'none', color:'#6b7280', cursor:'pointer', padding:4 }
+const labelStyle:  React.CSSProperties = { fontSize:12, color:'#9ca3af', fontWeight:500 }
+const inputStyle:  React.CSSProperties = { background:'#1e1e1e', border:'1px solid #3a3a3a', borderRadius:8, padding:'8px 12px', color:'#f3f4f6', fontSize:13, outline:'none', width:'100%', boxSizing:'border-box' }
+const btnPrimary:  React.CSSProperties = { padding:'9px 20px', borderRadius:8, border:'none', color:'#fff', fontSize:13, fontWeight:600, cursor:'pointer' }
+const btnSecondary:React.CSSProperties = { padding:'9px 20px', borderRadius:8, border:'1px solid #3a3a3a', background:'transparent', color:'#9ca3af', fontSize:13, cursor:'pointer' }
+
+// ─── Página ───────────────────────────────────────────────────────────────────
 export default function Estoque() {
   const navigate = useNavigate()
   const [viewMode, setViewMode]             = useState<'list' | 'matrix'>('list')
+  const [modal, setModal]                   = useState<'entrada' | 'saida' | null>(null)
   const [search, setSearch]                 = useState('')
   const [filterEntry, setFilterEntry]       = useState('')
   const [filterVal, setFilterVal]           = useState('')
@@ -81,6 +228,27 @@ export default function Estoque() {
               <Plus size={16} /> Novo produto
             </button>
           </div>
+        </div>
+
+        {/* Cards de ação */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+          {[
+            { type:'entrada' as const, icon:ArrowDownCircle, iconColor:'#10b981', bg:'#0d2e22', border:'#065f46', hoverBorder:'#10b981', title:'Registrar Entrada', desc:'Adicionar produto ao estoque', titleColor:'#6ee7b7', descColor:'#34d399' },
+            { type:'saida'   as const, icon:ArrowUpCircle,   iconColor:'#f87171', bg:'#2d0f0f', border:'#7f1d1d', hoverBorder:'#ef4444', title:'Registrar Saída',   desc:'Retirar produto do estoque',  titleColor:'#fca5a5', descColor:'#f87171' },
+          ].map(({ type, icon: Icon, iconColor, bg, border, hoverBorder, title, desc, titleColor, descColor }) => (
+            <button key={type} onClick={() => setModal(type)}
+              style={{ background:'#1e1e1e', border:`1px solid ${border}`, borderRadius:10, padding:'14px 18px', cursor:'pointer', textAlign:'left', transition:'all 0.2s', display:'flex', alignItems:'center', gap:14 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = hoverBorder; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = border; (e.currentTarget as HTMLElement).style.transform = 'none' }}>
+              <div style={{ width:38, height:38, borderRadius:8, background:bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <Icon size={20} color={iconColor} />
+              </div>
+              <div>
+                <div style={{ fontSize:14, fontWeight:700, color:titleColor }}>{title}</div>
+                <div style={{ fontSize:12, color:descColor, marginTop:2 }}>{desc}</div>
+              </div>
+            </button>
+          ))}
         </div>
 
         {/* ── LISTA ── */}
@@ -195,6 +363,9 @@ export default function Estoque() {
           </div>
         )}
       </div>
+
+      {modal === 'entrada' && <ModalEntrada onClose={() => setModal(null)} />}
+      {modal === 'saida'   && <ModalSaida   onClose={() => setModal(null)} />}
     </div>
   )
 }
