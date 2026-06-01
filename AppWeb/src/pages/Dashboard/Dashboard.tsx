@@ -1,316 +1,323 @@
-"use client";
+import { useState, useEffect } from 'react'
+import { Package, LayoutGrid, AlertTriangle, Ban, Bot, RefreshCw, Activity } from 'lucide-react'
 
-import React, { useEffect, useState } from 'react';
-import styles from './Dashboard.module.css';
-import { 
-  PlusCircle, 
-  MinusCircle, 
-  Package, 
-  Camera, 
-  Loader2, 
-  ArrowLeft,
-  Save
-} from 'lucide-react';
-import RobotStatus from '@/components/Dashboard/RobotStatus/RobotStatus';
-import InventoryTab from '@/components/InventoryTab/InventoryTab';
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+interface KpiItem {
+  icon: React.ElementType
+  color: string
+  bg: string
+  value: string
+  label: string
+}
 
-const Dashboard = () => {
-  const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [operationStatus, setOperationStatus] = useState('Aguardando comandos...');
-  const [isSearching, setIsSearching] = useState(false);
-  const [currentView, setCurrentView] = useState('home'); // 'home' ou 'inventory'
-  const [productsData, setProductsData] = useState<any[]>([])
-  console.log(productsData)
+interface CategoryItem {
+  label: string
+  value: number
+  color: string
+}
 
-  // Estados para controlar o formulário do modal
-  const [skuBusca, setSkuBusca] = useState('');
-  const [produtoEncontrado, setProdutoEncontrado] = useState(false);
-  const [form, setForm] = useState({
-    nome: '',
-    marca: '',
-    tipo: '',
-    validade: ''
-  });
+interface LogItem {
+  id: number
+  operator: string
+  action: 'Retirar' | 'Guardar'
+  product: string
+  position: string
+  status: 'SUCESSO' | 'FALHA'
+  time: string
+}
 
-  // Função disparada toda vez que o input de SKU muda
-  const handleSkuChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const valorDigitado = e.target.value;
-    setSkuBusca(valorDigitado);
+// ─── Dados simulados ──────────────────────────────────────────────────────────
+const mockKpis: KpiItem[] = [
+  { icon: Package,       color: '#10b981', bg: '#0d2e22', value: '48',    label: 'Produtos cadastrados' },
+  { icon: LayoutGrid,    color: '#3b82f6', bg: '#0d1f3d', value: '41/64', label: 'Slots ocupados'       },
+  { icon: AlertTriangle, color: '#f59e0b', bg: '#2d2006', value: '5',     label: 'Vencem em 30 dias'   },
+  { icon: Ban,           color: '#f87171', bg: '#2d0f0f', value: '2',     label: 'Lotes vencidos'      },
+]
 
-    // Busca no array de produtos existentes
-    const produto = productsData.find(
-      (p) => String(p.cod_produto) === String(valorDigitado)
-    );
+const mockCategories: CategoryItem[] = [
+  { label: 'Eletrônico', value: 18, color: '#10b981' },
+  { label: 'Mecânico',   value: 14, color: '#3b82f6' },
+  { label: 'Químico',    value: 9,  color: '#f59e0b' },
+  { label: 'Perecível',  value: 7,  color: '#8b5cf6' },
+]
 
-    if (produto) {
-      // Se achou, preenche os dados e sinaliza que é atualização
-      setForm((prev) => ({
-        ...prev,
-        nome: produto.nome_produto,
-        marca: produto.marca_produto,
-        tipo: produto.tipo_produto,
-      }));
-      setProdutoEncontrado(true);
-    } else {
-      // Se não achou, limpa os campos para um novo cadastro (mantendo a validade digitada)
-      setForm((prev) => ({
-        ...prev,
-        nome: '',
-        marca: '',
-        tipo: '',
-      }));
-      setProdutoEncontrado(false);
-    }
-  };
+const mockStorage = { occupied: 41, free: 23, pct: 64 }
 
-  // Função genérica para atualizar os inputs do formulário
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+const mockRobot = {
+  status: 'STANDBY',
+  temperatura: '38.2°C',
+  tempPct: 62,
+  bateria: 87,
+  ciclosTotais: '1.247',
+  uptime: '14h 32min',
+  ultimaManutencao: '12 dias atrás',
+  firmware: 'v2.4.1',
+}
 
-  const handleSalvarEstoque = () => {
-    const payload = {
-      cod_produto: Number(skuBusca),
-      nome_produto: form.nome,
-      marca_produto: form.marca,
-      tipo_produto: form.tipo,
-      validade_lote: form.validade,
-      isAtualizacao: produtoEncontrado // Flag útil para enviar para a sua API
-    };
+const mockLog: LogItem[] = [
+  { id:1, operator:'Leonardo Monteiro', action:'Retirar', product:'ESP32',            position:'E1L2C3', status:'SUCESSO', time:'5min atrás'  },
+  { id:2, operator:'Thiago',            action:'Guardar', product:'Sensor HC-SR04',   position:'E1L1C2', status:'SUCESSO', time:'18min atrás' },
+  { id:3, operator:'Eduardo',           action:'Retirar', product:'Resina Epóxi',     position:'E2L3C1', status:'FALHA',   time:'45min atrás' },
+  { id:4, operator:'Esdras',            action:'Guardar', product:'Bateria Li-Po 3S', position:'E1L3C4', status:'SUCESSO', time:'1h atrás'    },
+  { id:5, operator:'Isabella',          action:'Retirar', product:'Motor DC 12V',     position:'E2L2C2', status:'SUCESSO', time:'2h atrás'    },
+  { id:6, operator:'Italo',             action:'Guardar', product:'Cabo USB-C',       position:'E1L1C4', status:'SUCESSO', time:'3h atrás'    },
+  { id:7, operator:'Pedro',             action:'Retirar', product:'Resistor 10kΩ',    position:'E2L1C3', status:'SUCESSO', time:'4h atrás'    },
+]
 
-    console.log("Enviando para o backend:", payload);
-    // Aqui você chama o seu endpoint (ex: fetch('/api/produto/create', ...))
-  };
+// ─── Gráfico de rosca SVG ─────────────────────────────────────────────────────
+interface DonutChartProps {
+  data: { value: number; color: string }[]
+  size?: number
+  centerText?: React.ReactNode
+}
 
-  // FETCHS
+function DonutChart({ data, size = 130, centerText }: DonutChartProps) {
+  const cx = size / 2, cy = size / 2
+  const r  = size / 2 - 14
+  const c  = 2 * Math.PI * r
+  let cum  = 0
+  const total = data.reduce((s, d) => s + d.value, 0)
+  const slices = data.map(d => {
+    const pct  = d.value / total
+    const off  = c * (1 - cum)
+    const dash = c * pct
+    cum += pct
+    return { ...d, off, dash }
+  })
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        {slices.map((s, i) => (
+          <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+            stroke={s.color} strokeWidth="22"
+            strokeDasharray={`${s.dash} ${c - s.dash}`}
+            strokeDashoffset={s.off} />
+        ))}
+        <circle cx={cx} cy={cy} r={r - 15} fill="#2a2a2a" />
+      </svg>
+      {centerText && (
+        <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+          {centerText}
+        </div>
+      )}
+    </div>
+  )
+}
 
-  const buscaProdutosBanco = async () => {
-    try {
-      const resProduto = await fetch("/api/produto/get-all", {
-        cache: "no-store",
-      })
-      const dataProduto = await resProduto.json()
+// ─── Barra de progresso ───────────────────────────────────────────────────────
+function ProgressBar({ value, color }: { value: number; color: string }) {
+  return (
+    <div style={{ background: '#333', borderRadius: 99, height: 6, flex: 1 }}>
+      <div style={{ width: `${value}%`, background: color, borderRadius: 99, height: '100%', transition: 'width 0.6s ease' }} />
+    </div>
+  )
+}
 
-      if (dataProduto.success) {
-        setProductsData(dataProduto.products)
-      }
-    } catch (error) {
-      console.error("Erro ao buscar dados:", error)
-    }
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+export default function Dashboard() {
+  const [lastUpdate, setLastUpdate] = useState('30s atrás')
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(p => p), 30000)
+    return () => clearInterval(id)
+  }, [])
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    setTimeout(() => { setRefreshing(false); setLastUpdate('Agora') }, 1200)
   }
 
-  // Simulação da lógica de busca do robô
-  const handleRequestPallet = (posicao: string) => {
-    setActiveModal(null);
-    setIsSearching(true);
-    setOperationStatus(`Robô em movimento para a posição ${posicao}...`);
-    
-    setTimeout(() => {
-      setIsSearching(false);
-      setOperationStatus(`Pallet da posição ${posicao} entregue na zona de retirada.`);
-    }, 4000);
-  };
-
-  
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    buscaProdutosBanco()
-  }, [])
   return (
-    <main className={styles.container}>
-      <header className={styles.header}>
-        <h1>Estoque Autônomo</h1>
-        <p style={{ color: '#666' }}>Painel de Comando Central</p>
-      </header>
+    <div style={{ background:'#1e1e1e', minHeight:'100vh', padding:24, fontFamily:"'Inter', sans-serif", color:'#f3f4f6' }}>
 
-      {/* ==========================================
-          RENDERIZAÇÃO CONDICIONAL DAS TELAS
-          ========================================== */}
-      
-      {currentView === 'home' ? (
-        // TELA INICIAL: Cards de Ação
-        <section className={styles.actionGrid}>
-          <div className={`${styles.card} ${styles.cardAdd}`} onClick={() => setActiveModal('add')}>
-            <PlusCircle size={32} color="#10b981" />
-            <h3 style={{ margin: 0, color: '#064e3b' }}>Entrada de Produto</h3>
-            <p style={{ margin: 0, color: '#059669', fontSize: '0.9rem' }}>Scan ou cadastro manual</p>
-          </div>
-
-          <div className={`${styles.card} ${styles.cardRemove}`} onClick={() => setActiveModal('remove')}>
-            <MinusCircle size={32} color="#ef4444" />
-            <h3 style={{ margin: 0, color: '#7f1d1d' }}>Saída de Produto</h3>
-            <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.9rem' }}>Localizar e solicitar retirada</p>
-          </div>
-
-          {/* NOVO: Evento de clique para mudar de tela */}
-          <div className={`${styles.card} ${styles.cardInventory}`} onClick={() => setCurrentView('inventory')}>
-            <Package size={32} color="#3b82f6" />
-            <h3 style={{ margin: 0, color: '#1e3a8a' }}>Aba de Estoque</h3>
-            <p style={{ margin: 0, color: '#2563eb', fontSize: '0.9rem' }}>Inventário e mapeamento</p>
-          </div>
-        </section>
-      ) : (
-        // TELA DE ESTOQUE: Componente InventoryTab
+      {/* ── Topbar ── */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
         <div>
-          <button className={styles.backBtn} onClick={() => setCurrentView('home')}>
-            <ArrowLeft size={20} /> Voltar ao Início
-          </button>
-          
-          {/* Passamos a função de retirada como prop para a aba de estoque poder acionar o robô */}
-          <InventoryTab onRequestRemoval={handleRequestPallet} />
+          <h1 style={{ margin:0, fontSize:22, fontWeight:700, color:'#f3f4f6' }}>Visualização do estoque</h1>
+          <p style={{ margin:'4px 0 0', fontSize:12, color:'#6b7280' }}>
+            🕐 Atualizado {lastUpdate} · dados de demonstração
+          </p>
         </div>
-      )}
+        <button onClick={handleRefresh} style={{ display:'flex', alignItems:'center', gap:8, background:'#2a2a2a', border:'1px solid #3a3a3a', color:'#f3f4f6', padding:'8px 16px', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:500 }}>
+          <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+          Atualizar
+        </button>
+      </div>
 
-      {/* ==========================================
-          TELEMETRIA E MODAIS
-          ========================================== */}
-
-      {/* O Status fica fora da condição, logo ele NUNCA some da tela */}
-      <RobotStatus isSearching={isSearching} operationStatus={operationStatus} />
-
-      {/* Modal: Adicionar */}
-      {activeModal === 'add' && (
-        <div className={styles.modalOverlay} onClick={() => setActiveModal(null)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ color: '#064e3b', marginBottom: '1rem' }}>
-              Registrar Entrada de Lote
-            </h2>
-            
-            {/* Linha de Busca SKU */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem' }}>
-              <input
-                type="number"
-                placeholder="Código SKU..."
-                value={skuBusca}
-                onChange={handleSkuChange}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #10b981', outline: 'none' }}
-              />
-              <button style={{ background: '#10b981', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
-                <Camera size={20} />
-              </button>
+      {/* ── KPIs ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:20 }}>
+        {mockKpis.map(({ icon: Icon, color, bg, value, label }) => (
+          <div key={label} style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:'16px 20px', display:'flex', alignItems:'center', gap:14 }}>
+            <div style={{ width:42, height:42, borderRadius:10, background:bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <Icon size={20} color={color} />
             </div>
-
-            {/* Formulário de Dados */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div>
-                <label style={{ fontSize: '14px', color: '#064e3b', fontWeight: 'bold' }}>Nome do Produto</label>
-                <input
-                  type="text"
-                  name="nome"
-                  value={form.nome}
-                  onChange={handleFormChange}
-                  placeholder="Ex: Pneu slick"
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', marginTop: '5px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '14px', color: '#064e3b', fontWeight: 'bold' }}>Marca</label>
-                  <input
-                    type="text"
-                    name="marca"
-                    value={form.marca}
-                    onChange={handleFormChange}
-                    placeholder="Ex: Pirelli"
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', marginTop: '5px' }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '14px', color: '#064e3b', fontWeight: 'bold' }}>Tipo</label>
-                  <input
-                    type="text"
-                    name="tipo"
-                    value={form.tipo}
-                    onChange={handleFormChange}
-                    placeholder="Ex: Não perecível"
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', marginTop: '5px' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '14px', color: '#064e3b', fontWeight: 'bold' }}>Validade do Lote</label>
-                <input
-                  type="date"
-                  name="validade"
-                  value={form.validade}
-                  onChange={handleFormChange}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', marginTop: '5px' }}
-                />
-              </div>
-
-              {/* Mensagem de Feedback Visual */}
-              {produtoEncontrado && skuBusca.length > 0 && (
-                <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 'bold' }}>
-                  ✓ Produto existente encontrado. Você pode atualizar os dados se necessário.
-                </span>
-              )}
-              {!produtoEncontrado && skuBusca.length > 0 && (
-                <span style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 'bold' }}>
-                  ⚠ Produto não cadastrado. Um novo registro será criado.
-                </span>
-              )}
-
-              {/* Botão de Submissão */}
-              <button 
-                onClick={handleSalvarEstoque}
-                style={{ 
-                  background: '#064e3b', 
-                  color: 'white', 
-                  padding: '14px', 
-                  borderRadius: '8px', 
-                  border: 'none', 
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontWeight: 'bold',
-                  marginTop: '10px'
-                }}
-              >
-                <Save size={20} />
-                Guardar lote no estoque
-              </button>
+            <div>
+              <div style={{ fontSize:26, fontWeight:800, lineHeight:1, color:'#f3f4f6' }}>{value}</div>
+              <div style={{ fontSize:12, color:'#6b7280', marginTop:3 }}>{label}</div>
             </div>
+          </div>
+        ))}
+      </div>
 
+      {/* ── Grid: Gráficos + Robô ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:20 }}>
+
+        {/* Categorias */}
+        <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20 }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.12em', color:'#6b7280', textTransform:'uppercase', marginBottom:16 }}>
+            Categorias no estoque
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:20 }}>
+            <DonutChart data={mockCategories} size={120} />
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {mockCategories.map(c => (
+                <div key={c.label} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
+                  <div style={{ width:10, height:10, borderRadius:'50%', background:c.color, flexShrink:0 }} />
+                  <span style={{ color:'#d1d5db' }}>{c.label}</span>
+                  <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{c.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Modal: Remover */}
-      {activeModal === 'remove' && (
-        <div className={styles.modalOverlay} onClick={() => setActiveModal(null)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <h2 style={{ color: '#7f1d1d' }}>Solicitar Retirada</h2>
-            <input 
-              type="text" 
-              placeholder="Nome ou código da peça..." 
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ef4444', marginTop: '1rem', boxSizing: 'border-box' }} 
+        {/* Armazenamento */}
+        <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20 }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.12em', color:'#6b7280', textTransform:'uppercase', marginBottom:16 }}>
+            Armazenamento utilizado
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:20 }}>
+            <DonutChart
+              data={[
+                { value: mockStorage.occupied, color: '#f59e0b' },
+                { value: mockStorage.free,     color: '#333333' },
+              ]}
+              size={120}
+              centerText={
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:22, fontWeight:800, color:'#f59e0b' }}>{mockStorage.pct}%</div>
+                  <div style={{ fontSize:10, color:'#6b7280' }}>em uso</div>
+                </div>
+              }
             />
-            <div style={{ marginTop: '1.5rem', background: '#fef2f2', padding: '1rem', borderRadius: '8px' }}>
-              <p style={{ fontSize: '0.9rem', color: '#b91c1c', marginBottom: '10px', fontWeight: 'bold' }}>Em estoque nestas posições:</p>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button 
-                  onClick={() => handleRequestPallet('1C2')}
-                  style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  Extrair 1C2
-                </button>
-                <button 
-                  onClick={() => handleRequestPallet('1B7')}
-                  style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  Extrair 1B7
-                </button>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
+                <div style={{ width:10, height:10, borderRadius:'50%', background:'#f59e0b' }} />
+                <span style={{ color:'#d1d5db' }}>Ocupados</span>
+                <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{mockStorage.occupied}</span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
+                <div style={{ width:10, height:10, borderRadius:'50%', background:'#374151' }} />
+                <span style={{ color:'#d1d5db' }}>Livres</span>
+                <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{mockStorage.free}</span>
               </div>
             </div>
           </div>
         </div>
-      )}
-    </main>);
-};
 
-export default Dashboard;
+        {/* Robô */}
+        <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <Bot size={16} color="#d4a04a" />
+              <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.12em', color:'#6b7280', textTransform:'uppercase' }}>
+                Telemetria do robô
+              </span>
+            </div>
+            <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:99, background:'#1e2a1e', color:'#10b981', border:'1px solid #10b98133' }}>
+              ● {mockRobot.status}
+            </span>
+          </div>
+
+          <div style={{ marginBottom:10 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#9ca3af', marginBottom:4 }}>
+              <span>Temperatura</span>
+              <span style={{ color:'#f59e0b', fontWeight:600 }}>{mockRobot.temperatura}</span>
+            </div>
+            <ProgressBar value={mockRobot.tempPct} color="#f59e0b" />
+          </div>
+
+          <div style={{ marginBottom:16 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#9ca3af', marginBottom:4 }}>
+              <span>Bateria</span>
+              <span style={{ color:'#10b981', fontWeight:600 }}>{mockRobot.bateria}%</span>
+            </div>
+            <ProgressBar value={mockRobot.bateria} color="#10b981" />
+          </div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            {([
+              ['Ciclos totais',     mockRobot.ciclosTotais],
+              ['Uptime',            mockRobot.uptime],
+              ['Última manutenção', mockRobot.ultimaManutencao],
+              ['Firmware',          mockRobot.firmware],
+            ] as [string, string][]).map(([label, value]) => (
+              <div key={label}>
+                <div style={{ fontSize:11, color:'#6b7280', marginBottom:2 }}>{label}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'#f3f4f6' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Log de movimentações ── */}
+      <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+          <Activity size={16} color="#10b981" />
+          <span style={{ fontWeight:700, fontSize:15 }}>Log de movimentações</span>
+        </div>
+
+        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom:'1px solid #3a3a3a' }}>
+              {['OPERADOR','AÇÃO','PRODUTO','POSIÇÃO','STATUS','HORÁRIO'].map(h => (
+                <th key={h} style={{ textAlign:'left', padding:'8px 12px', fontSize:11, fontWeight:700, letterSpacing:'0.1em', color:'#6b7280', textTransform:'uppercase' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {mockLog.map(row => (
+              <tr key={row.id} style={{ borderBottom:'1px solid #333' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#333'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
+                <td style={{ padding:'12px', fontWeight:700, fontSize:13, color:'#f3f4f6' }}>{row.operator}</td>
+                <td style={{ padding:'12px' }}>
+                  <span style={{
+                    fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:99,
+                    background: row.action === 'Guardar' ? '#0d2e22' : '#2d1a0d',
+                    color:      row.action === 'Guardar' ? '#10b981'  : '#f59e0b',
+                    border:     `1px solid ${row.action === 'Guardar' ? '#10b98133' : '#f59e0b33'}`,
+                  }}>
+                    {row.action === 'Guardar' ? '↓' : '↑'} {row.action}
+                  </span>
+                </td>
+                <td style={{ padding:'12px', fontSize:13, color:'#d1d5db' }}>{row.product}</td>
+                <td style={{ padding:'12px' }}>
+                  <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:6, background:'#3a3a3a', color:'#9ca3af' }}>
+                    {row.position}
+                  </span>
+                </td>
+                <td style={{ padding:'12px' }}>
+                  <span style={{
+                    fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:99,
+                    background: row.status === 'SUCESSO' ? '#0d2e22' : '#2d0f0f',
+                    color:      row.status === 'SUCESSO' ? '#10b981'  : '#f87171',
+                    border:     `1px solid ${row.status === 'SUCESSO' ? '#10b98133' : '#f8717133'}`,
+                  }}>
+                    {row.status === 'SUCESSO' ? '✓' : '△'} {row.status}
+                  </span>
+                </td>
+                <td style={{ padding:'12px', fontSize:12, color:'#6b7280' }}>{row.time}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+}
