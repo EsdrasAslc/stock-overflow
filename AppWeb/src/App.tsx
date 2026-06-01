@@ -6,31 +6,40 @@ import Estoque from '@/pages/Estoque/Estoque'
 import Movimentacao from '@/pages/Movimentacao/Movimentacao'
 import Sidebar from '@/components/Sidebar/Sidebar'
 
-// ─── Lê cookie ────────────────────────────────────────────────────────────────
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
   return match ? decodeURIComponent(match[2]) : null
 }
 
-// ─── Rota protegida ───────────────────────────────────────────────────────────
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!getCookie('session')) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
-// ─── Layout com sidebar ───────────────────────────────────────────────────────
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#1e1e1e', overflow: 'hidden' }}>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      width: '100vw',
+      background: '#1e1e1e',
+      overflow: 'hidden',
+      boxSizing: 'border-box',
+    }}>
       <Sidebar />
-      <main style={{ flex: 1, overflowY: 'auto' }}>
+      <main style={{
+        flex: 1,
+        minWidth: 0,          /* impede que flex item estoure o pai */
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
+      }}>
         {children}
       </main>
     </div>
   )
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
 function App() {
   return (
     <Routes>
@@ -38,21 +47,13 @@ function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
 
       <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <AppLayout><Dashboard /></AppLayout>
-        </ProtectedRoute>
+        <ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>
       } />
-
       <Route path="/estoque" element={
-        <ProtectedRoute>
-          <AppLayout><Estoque /></AppLayout>
-        </ProtectedRoute>
+        <ProtectedRoute><AppLayout><Estoque /></AppLayout></ProtectedRoute>
       } />
-
       <Route path="/movimentacao" element={
-        <ProtectedRoute>
-          <AppLayout><Movimentacao /></AppLayout>
-        </ProtectedRoute>
+        <ProtectedRoute><AppLayout><Movimentacao /></AppLayout></ProtectedRoute>
       } />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
