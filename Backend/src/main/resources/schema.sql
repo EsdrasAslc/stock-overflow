@@ -42,6 +42,8 @@ CREATE TABLE estantes (
     nome             VARCHAR(255) NOT NULL,
     capacidade_maxima INTEGER      NOT NULL,
     capacidade_atual  INTEGER      NOT NULL,
+    x                INTEGER      NOT NULL DEFAULT 100,
+    y                INTEGER      NOT NULL DEFAULT 30,
     armazem_id       VARCHAR(36)  NOT NULL,
     robot_id         VARCHAR(36),
     FOREIGN KEY (armazem_id) REFERENCES armazens(id) ON DELETE CASCADE,
@@ -57,28 +59,7 @@ CREATE TABLE produtos (
     FOREIGN KEY (estante_id) REFERENCES estantes(id) ON DELETE CASCADE
 );
 
--- 5. Tabela logs
-CREATE TABLE logs (
-    id         VARCHAR(36)  PRIMARY KEY,
-    timestamp  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    tipo       tipo_log     NOT NULL,
-    mensagem   VARCHAR(255) NOT NULL,
-    estante_id VARCHAR(36),
-    robot_id   VARCHAR(36),
-    FOREIGN KEY (estante_id) REFERENCES estantes(id) ON DELETE SET NULL,
-    FOREIGN KEY (robot_id)   REFERENCES robots(id)   ON DELETE SET NULL
-);
-
--- 6. Tabela usuarios
-CREATE TABLE usuarios (
-    id       VARCHAR(36)   PRIMARY KEY,
-    nome     VARCHAR(255)  NOT NULL,
-    cpf      VARCHAR(14)   NOT NULL UNIQUE,
-    password VARCHAR(255)  NOT NULL,
-    role     usuario_role  NOT NULL
-);
-
--- 7. Tabela robot_moviments
+-- 5. Tabela robot_moviments
 CREATE TABLE robot_moviments (
     id                  VARCHAR(36) PRIMARY KEY,
     robot_id            VARCHAR(36) NOT NULL,
@@ -86,12 +67,35 @@ CREATE TABLE robot_moviments (
     origem_estante_id   VARCHAR(36) NOT NULL,
     destino_estante_id  VARCHAR(36) NOT NULL,
     timestamp           TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    tipo_movimento     tipo_movimento NOT NULL,
+    tipo_movimento      tipo_movimento NOT NULL,
     status_movimentacao StatusMovimentacao NOT NULL,
     FOREIGN KEY (robot_id)           REFERENCES robots(id)   ON DELETE CASCADE,
     FOREIGN KEY (produto_id)         REFERENCES produtos(id) ON DELETE CASCADE,
     FOREIGN KEY (origem_estante_id)  REFERENCES estantes(id) ON DELETE CASCADE,
     FOREIGN KEY (destino_estante_id) REFERENCES estantes(id) ON DELETE CASCADE
+);
+
+-- 6. Tabela logs
+CREATE TABLE logs (
+    id              VARCHAR(36)  PRIMARY KEY,
+    timestamp       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    tipo            tipo_log     NOT NULL,
+    mensagem        VARCHAR(255) NOT NULL,
+    estante_id      VARCHAR(36),
+    robot_id        VARCHAR(36),
+    movimentacao_id VARCHAR(36),
+    FOREIGN KEY (estante_id)      REFERENCES estantes(id)         ON DELETE SET NULL,
+    FOREIGN KEY (robot_id)        REFERENCES robots(id)           ON DELETE SET NULL,
+    FOREIGN KEY (movimentacao_id) REFERENCES robot_moviments(id)  ON DELETE SET NULL
+);
+
+-- 7. Tabela usuarios
+CREATE TABLE usuarios (
+    id       VARCHAR(36)   PRIMARY KEY,
+    nome     VARCHAR(255)  NOT NULL,
+    cpf      VARCHAR(14)   NOT NULL UNIQUE,
+    password VARCHAR(255)  NOT NULL,
+    role     usuario_role  NOT NULL
 );
 
 -- FK circular: robots -> produtos (adicionada após criação de ambas as tabelas)

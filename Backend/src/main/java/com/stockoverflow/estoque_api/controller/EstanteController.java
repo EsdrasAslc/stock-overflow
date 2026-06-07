@@ -14,48 +14,40 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/estantes")
 @RequiredArgsConstructor
 public class EstanteController {
 
     private final EstanteService estanteService;
     private final ProdutoService produtoService;
 
-    @GetMapping("/api/estantes")
+    @GetMapping
     public List<EstanteResponseDTO> listarTodos() {
         return estanteService.listarTodos();
     }
 
-    @GetMapping("/api/estantes/{id}")
+    @GetMapping("/{id}")
     public EstanteResponseDTO buscarPorId(@PathVariable String id) {
         return estanteService.buscarPorId(id);
     }
 
-    @PostMapping("/api/estantes")
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EstanteResponseDTO criar(@Valid @RequestBody EstanteRequestDTO dto) {
         return estanteService.criar(dto);
     }
 
-    @GetMapping("/api/armazens/{armazemId}/estantes")
-    public List<EstanteResponseDTO> listarEstantesPorArmazem(@PathVariable String armazemId) {
-        return estanteService.listarPorArmazem(armazemId);
-    }
-
-    @GetMapping("/api/estantes/{estanteId}/produtos")
+    @GetMapping("/{estanteId}/produtos")
     public List<ProdutoResponseDTO> listarProdutosDaEstante(@PathVariable String estanteId) {
         return produtoService.buscarPorEstante(estanteId);
     }
 
-    @GetMapping(value = {
-            "/api/estantes/{estanteId}/robot/status",
-            "/api/estantes/{estanteId}/robotstatus",
-            "/api/estantes/{estanteId}/robot-status"
-    })
+    @GetMapping("/{estanteId}/robot/status")
     public RobotResponseDTO buscarStatusDoRoboDaEstante(@PathVariable String estanteId) {
         return estanteService.buscarRoboDaEstante(estanteId);
     }
 
-    @DeleteMapping("/api/estantes/{id}")
+    @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluirPorId(@PathVariable String id) {
         estanteService.excluirPorId(id);

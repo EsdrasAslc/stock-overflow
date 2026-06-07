@@ -5,6 +5,8 @@ public record EstanteResponseDTO(
     String nome,
     Integer capacidadeMaxima,
     Integer capacidadeAtual,
+    Integer x,
+    Integer y,
     String armazemId,
     RobotResponseDTO robot
 ) {}

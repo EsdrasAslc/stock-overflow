@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +33,7 @@ public class RobotMovimentService {
     public List<RobotMovimentResponseDTO> listarTodos() {
         return repository.findAll().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public RobotMovimentResponseDTO buscarPorId(String id) {
@@ -46,7 +45,7 @@ public class RobotMovimentService {
     public List<RobotMovimentResponseDTO> buscarPorRobot(String robotId) {
         return repository.findByRobotId(robotId).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional

@@ -11,33 +11,29 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/robot-moviments")
 @RequiredArgsConstructor
 public class RobotMovimentController {
 
     private final RobotMovimentService service;
 
-    @GetMapping("/api/robot-moviments")
+    @GetMapping
     public List<RobotMovimentResponseDTO> listarTodos() {
         return service.listarTodos();
     }
 
-    @GetMapping("/api/robot-moviments/{id}")
+    @GetMapping("/{id}")
     public RobotMovimentResponseDTO buscarPorId(@PathVariable String id) {
         return service.buscarPorId(id);
     }
 
-    @GetMapping("/api/robots/{robotId}/moviments")
-    public List<RobotMovimentResponseDTO> listarPorRobot(@PathVariable String robotId) {
-        return service.buscarPorRobot(robotId);
-    }
-
-    @PostMapping("/api/robot-moviments")
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RobotMovimentResponseDTO criar(@Valid @RequestBody RobotMovimentRequestDTO dto) {
         return service.criar(dto);
     }
 
-    @DeleteMapping("/api/robot-moviments/{id}")
+    @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletar(@PathVariable String id) {
         service.deletar(id);

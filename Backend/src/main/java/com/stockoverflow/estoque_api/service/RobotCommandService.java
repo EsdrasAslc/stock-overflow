@@ -9,87 +9,112 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
  * Serviço responsável por orquestrar a lógica de negócio do comando.
- * Ele recebe a requisição REST, valida o robô, formata o JSON do ESP32,
- * aciona a comunicação e devolve a resposta final traduzida.
+ * Ele recebe a requisição REST do frontend, traduz para o protocolo do firmware original
+ * do ESP32 (usando "action", "x" e "y" em vez de "command" e "targetShelf") e envia via WebSocket.
  */
-@Slf4j // Habilita logging no console
-@Service // Declara a classe como um serviço do Spring
-@RequiredArgsConstructor // Construtor automático com campos final
+@Slf4j
+@Service
+@RequiredArgsConstructor
 public class RobotCommandService {
 
-    private final Esp32WebSocketClient esp32Client; // Injeta o cliente de WebSocket
-    private final RobotRepository robotRepository; // Injeta o repositório de acesso a dados da entidade Robot
-    private final ObjectMapper objectMapper = new ObjectMapper(); // Jackson Mapper para serialização/deserialização
+    private final Esp32WebSocketClient esp32Client;
+    private final RobotRepository robotRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Envia um comando customizado para um robô registrado.
-     * 
-     * @param robotId Identificador textual do robô (ex: "ROB-01")
-     * @param request Payload contendo o comando e parâmetros (estante, produto)
-     * @return DTO com o resultado retornado pelo robô ou erro tratado
+     * Traduz e envia um comando para o robô físico.
      */
     public RobotCommandResponse sendCommand(String robotId, RobotCommandRequest request) {
-        // 1. Busca e valida se o robô realmente existe no banco de dados
+        // Valida se o robô existe no banco
         Robot robot = robotRepository.findById(robotId)
                 .orElseThrow(() -> new RuntimeException("Robô não encontrado: " + robotId));
 
-        // 2. Gera um identificador único exclusivo da requisição para rastreamento (requestId)
-        String requestId = UUID.randomUUID().toString();
+        String commandName = request.getCommand() != null ? request.getCommand().toLowerCase() : "";
+        Map<String, Object> payload = new HashMap<>();
 
-        // 3. Constrói o mapa de dados a ser enviado para o robô físico no formato que ele espera
-        Map<String, Object> payload = Map.of(
-                "requestId", requestId,
-                "robotId", robotId,
-                "command", request.getCommand(),
-                "targetShelf", request.getTargetShelf() != null ? request.getTargetShelf() : "",
-                "productId", request.getProductId() != null ? request.getProductId() : ""
-        );
+        if ("move".equals(commandName)) {
+            payload.put("action", "move");
+
+            // Traduz estante física (ex: "A3") para coordenadas x/y que o ESP32 entende
+            String targetShelf = request.getTargetShelf();
+            int x = 0;
+            int y = 0;
+
+            if (targetShelf != null && !targetShelf.trim().isEmpty()) {
+                String shelfTrimmed = targetShelf.trim().toUpperCase();
+                char letter = shelfTrimmed.charAt(0);
+                
+                // Mapeia Letra -> X
+                switch (letter) {
+                    case 'A' -> x = 100;
+                    case 'B' -> x = 200;
+                    case 'C' -> x = 300;
+                    default -> x = 50;
+                }
+
+                // Mapeia Número -> Y
+                if (shelfTrimmed.length() > 1) {
+                    try {
+                        int col = Integer.parseInt(shelfTrimmed.substring(1));
+                        y = col * 100;
+                    } catch (NumberFormatException e) {
+                        y = 100;
+                    }
+                } else {
+                    y = 100;
+                }
+            }
+            
+            payload.put("x", x);
+            payload.put("y", y);
+            log.info("[CMD] Traduzido estante '{}' para X: {} e Y: {} para o ESP32", targetShelf, x, y);
+
+        } else if ("stop".equals(commandName)) {
+            payload.put("action", "stop");
+        } else if ("status".equals(commandName)) {
+            payload.put("action", "status");
+        } else {
+            throw new IllegalArgumentException("Comando não reconhecido pelo firmware do robô: " + request.getCommand());
+        }
 
         try {
-            // 4. Converte o mapa Java em uma String JSON estruturada
+            // Converte o payload no formato {"action": "move", "x": 100, "y": 200}
             String payloadJson = objectMapper.writeValueAsString(payload);
-            log.info("[CMD] Enviando comando '{}' para robô {}", request.getCommand(), robotId);
+            log.info("[CMD] Enviando JSON para ESP32: {}", payloadJson);
 
-            // 5. Envia o JSON via WebSocket e bloqueia a linha de execução aguardando a resposta textual
-            String rawResponse = esp32Client.sendAndWait(requestId, payloadJson);
-            
-            // 6. Faz o parsing do JSON recebido do ESP32 de volta para um mapa Java genérico
+            // Envia e aguarda a resposta direta correspondente
+            String rawResponse = esp32Client.sendAndWait(payloadJson);
             Map<?, ?> responseMap = objectMapper.readValue(rawResponse, Map.class);
-            Object statusObj = responseMap.get("status");
-            Object messageObj = responseMap.get("message");
 
-            // 7. Retorna a resposta empacotada no DTO de resposta do robô
+            Object statusObj = responseMap.get("status");
+            Object mensagemObj = responseMap.get("mensagem");
+
+            // Retorna o resultado para o frontend
             return new RobotCommandResponse(
-                    requestId,
+                    null, // Firmware original não possui requestId
                     statusObj != null ? statusObj.toString() : "OK",
-                    messageObj != null ? messageObj.toString() : "Comando executado",
-                    responseMap.get("data")
+                    mensagemObj != null ? mensagemObj.toString() : "Comando executado com sucesso",
+                    responseMap
             );
 
         } catch (TimeoutException e) {
-            // Se o ESP32 estourar o tempo limite configurado no .env sem responder
-            log.error("[CMD] Timeout aguardando resposta do ESP32 para requestId={}", requestId);
+            log.error("[CMD] Timeout aguardando resposta do ESP32");
             throw new RuntimeException("ESP32 não respondeu no tempo esperado");
         } catch (IllegalStateException e) {
-            // Se tentar enviar o comando e o canal WebSocket com o ESP32 estiver offline
             log.error("[CMD] ESP32 desconectado");
             throw new RuntimeException("Robô não está conectado");
         } catch (Exception e) {
-            // Caso ocorra qualquer falha inesperada na codificação de JSON ou socket
             log.error("[CMD] Erro ao enviar comando: {}", e.getMessage());
             throw new RuntimeException("Erro interno ao comunicar com o robô");
         }
     }
 
-    /**
-     * Verifica com o cliente WebSocket se a conexão física está ativa.
-     */
     public boolean isRobotConnected() {
         return esp32Client.isConnected();
     }

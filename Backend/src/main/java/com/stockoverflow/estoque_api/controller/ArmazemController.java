@@ -2,7 +2,9 @@ package com.stockoverflow.estoque_api.controller;
 
 import com.stockoverflow.estoque_api.dto.ArmazemRequestDTO;
 import com.stockoverflow.estoque_api.dto.ArmazemResponseDTO;
+import com.stockoverflow.estoque_api.dto.EstanteResponseDTO;
 import com.stockoverflow.estoque_api.service.ArmazemService;
+import com.stockoverflow.estoque_api.service.EstanteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,7 @@ import java.util.List;
 public class ArmazemController {
 
     private final ArmazemService service;
+    private final EstanteService estanteService;
 
     @GetMapping
     public List<ArmazemResponseDTO> listarTodos() {
@@ -33,9 +36,14 @@ public class ArmazemController {
         return service.criar(dto);
     }
 
+    @GetMapping("/{armazemId}/estantes")
+    public List<EstanteResponseDTO> listarEstantesPorArmazem(@PathVariable String armazemId) {
+        return estanteService.listarPorArmazem(armazemId);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletar(@PathVariable String id) {
-        service.delete(id);
+        service.deletar(id);
     }
 }

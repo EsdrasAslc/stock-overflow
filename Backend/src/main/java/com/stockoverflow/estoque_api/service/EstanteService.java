@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +28,8 @@ public class EstanteService {
                 estante.getNome(),
                 estante.getCapacidadeMaxima(),
                 estante.getCapacidadeAtual(),
+                estante.getX(),
+                estante.getY(),
                 estante.getArmazem() != null ? estante.getArmazem().getId() : null,
                 robotService.toDTO(estante.getRobot())
         );
@@ -37,13 +38,13 @@ public class EstanteService {
     public List<EstanteResponseDTO> listarTodos() {
         return repository.findAll().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<EstanteResponseDTO> listarPorArmazem(String armazemId) {
         return repository.findByArmazemId(armazemId).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public EstanteResponseDTO buscarPorId(String id) {
@@ -68,6 +69,8 @@ public class EstanteService {
                 .nome(dto.nome())
                 .capacidadeMaxima(dto.capacidadeMaxima())
                 .capacidadeAtual(0)
+                .x(dto.x())
+                .y(dto.y())
                 .armazem(armazem)
                 .build();
         return toDTO(repository.save(estante));

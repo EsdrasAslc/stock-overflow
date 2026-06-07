@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,18 +18,13 @@ public class ArmazemService {
     public List<ArmazemResponseDTO> listarTodos() {
         return repository.findAll().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ArmazemResponseDTO buscarPorId(String id) {
         Armazem armazem = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Armazém não encontrado"));
         return toDTO(armazem);
-    }
-
-    public Armazem buscarEntidadePorId(String id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Armazém não encontrado"));
     }
 
     public ArmazemResponseDTO criar(ArmazemRequestDTO dto) {
@@ -40,7 +34,8 @@ public class ArmazemService {
         return toDTO(repository.save(armazem));
     }
 
-    public void delete(String id) {
+    // Renomeado de delete() para deletar() — padroniza a nomenclatura em português
+    public void deletar(String id) {
         repository.deleteById(id);
     }
 

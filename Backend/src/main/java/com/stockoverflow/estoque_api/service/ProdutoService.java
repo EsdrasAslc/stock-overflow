@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +21,7 @@ public class ProdutoService {
     public List<ProdutoResponseDTO> listarTodos() {
         return repository.findAll().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ProdutoResponseDTO buscarPorId(String id) {
@@ -34,11 +33,7 @@ public class ProdutoService {
     public List<ProdutoResponseDTO> buscarPorEstante(String estanteId) {
         return repository.findByEstanteId(estanteId).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    public List<Produto> buscarEntidadesPorEstante(String estanteId) {
-        return repository.findByEstanteId(estanteId);
+                .toList();
     }
 
     public ProdutoResponseDTO criar(ProdutoRequestDTO dto) {

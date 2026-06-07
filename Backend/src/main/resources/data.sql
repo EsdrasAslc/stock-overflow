@@ -12,10 +12,10 @@ INSERT INTO robots (id, status, produto_atual_id) VALUES
 ('ROB-03', 'MANUTENCAO', NULL);
 
 -- 3. Inserir Estantes (referenciando Armazéns e Robots)
-INSERT INTO estantes (id, nome, capacidade_maxima, capacidade_atual, armazem_id, robot_id) VALUES
-('EST-01', 'Estante A1', 100, 45, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-01'),
-('EST-02', 'Estante A2', 100, 80, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-02'),
-('EST-03', 'Estante B1', 150, 0, 'e3bd8234-8c88-4c8d-bf80-5a3b2b415a88', NULL);
+INSERT INTO estantes (id, nome, capacidade_maxima, capacidade_atual, x, y, armazem_id, robot_id) VALUES
+('EST-01', 'Estante A1', 100, 45, 100, 10, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-01'),
+('EST-02', 'Estante A2', 100, 80, 100, 20, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-02'),
+('EST-03', 'Estante B1', 150, 0, 200, 10, 'e3bd8234-8c88-4c8d-bf80-5a3b2b415a88', NULL);
 
 -- 4. Inserir Produtos (referenciando Estantes)
 INSERT INTO produtos (id, nome, quantidade, estante_id) VALUES
@@ -34,7 +34,7 @@ INSERT INTO logs (id, timestamp, tipo, mensagem, estante_id, robot_id) VALUES
 ('c4d56e78-9f01-23a4-b5c6-d7e8f9a0b1c2', NOW() - INTERVAL '10 minutes', 'LOGISTICA', 'Robot ROB-02 iniciou transporte do produto Rolamentos de Esfera 6204.', 'EST-02', 'ROB-02');
 
 -- 7. Inserir Usuários de Exemplo
-INSERT INTO usuarios (id, nome, email, password, role) VALUES
-('u1ad8234-8c88-4c8d-bf80-5a3b2b415a01', 'Administrador do Sistema', 'admin@stockoverflow.com', '$2a$10$8.UnVuG9HHgffUDAlk8qCOuy5fKbC2fZg.W1s24mD6.G92mN2/V.u', 'ADMIN'),
-('u2bd8234-8c88-4c8d-bf80-5a3b2b415a02', 'Operador de Estoque Silva', 'operador@stockoverflow.com', '$2a$10$8.UnVuG9HHgffUDAlk8qCOuy5fKbC2fZg.W1s24mD6.G92mN2/V.u', 'OPERADOR'),
-('u3cd8234-8c88-4c8d-bf80-5a3b2b415a03', 'Técnico de Robótica Costa', 'tecnico@stockoverflow.com', '$2a$10$8.UnVuG9HHgffUDAlk8qCOuy5fKbC2fZg.W1s24mD6.G92mN2/V.u', 'TECNICO');
+INSERT INTO usuarios (id, nome, cpf, password, role) VALUES
+('u1ad8234-8c88-4c8d-bf80-5a3b2b415a01', 'Administrador do Sistema', '000.000.000-00', '$2a$10$8.UnVuG9HHgffUDAlk8qCOuy5fKbC2fZg.W1s24mD6.G92mN2/V.u', 'ADMIN'),
+('u2bd8234-8c88-4c8d-bf80-5a3b2b415a02', 'Operador de Estoque Silva', '111.111.111-11', '$2a$10$8.UnVuG9HHgffUDAlk8qCOuy5fKbC2fZg.W1s24mD6.G92mN2/V.u', 'OPERADOR'),
+('u3cd8234-8c88-4c8d-bf80-5a3b2b415a03', 'Técnico de Robótica Costa', '222.222.222-22', '$2a$10$8.UnVuG9HHgffUDAlk8qCOuy5fKbC2fZg.W1s24mD6.G92mN2/V.u', 'TECNICO');

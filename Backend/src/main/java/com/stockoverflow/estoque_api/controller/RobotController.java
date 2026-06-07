@@ -1,7 +1,9 @@
 package com.stockoverflow.estoque_api.controller;
 
+import com.stockoverflow.estoque_api.dto.RobotMovimentResponseDTO;
 import com.stockoverflow.estoque_api.dto.RobotRequestDTO;
 import com.stockoverflow.estoque_api.dto.RobotResponseDTO;
+import com.stockoverflow.estoque_api.service.RobotMovimentService;
 import com.stockoverflow.estoque_api.service.RobotService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import java.util.List;
 public class RobotController {
 
     private final RobotService service;
+    private final RobotMovimentService robotMovimentService;
 
     @GetMapping
     public List<RobotResponseDTO> listarTodos() {
@@ -31,6 +34,11 @@ public class RobotController {
     @ResponseStatus(HttpStatus.CREATED)
     public RobotResponseDTO criar(@Valid @RequestBody RobotRequestDTO dto) {
         return service.criar(dto);
+    }
+
+    @GetMapping("/{robotId}/moviments")
+    public List<RobotMovimentResponseDTO> listarPorRobot(@PathVariable String robotId) {
+        return robotMovimentService.buscarPorRobot(robotId);
     }
 
     @DeleteMapping("/{id}")

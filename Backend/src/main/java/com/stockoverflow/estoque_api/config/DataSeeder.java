@@ -17,9 +17,41 @@ public class DataSeeder implements CommandLineRunner {
     private final RobotRepository robotRepository;
     private final ProdutoRepository produtoRepository;
     private final LogRepository logRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     public void run(String... args) throws Exception {
+        // ─── Seeding de Usuários ───────────────────────────────────────────────────
+        // Cria usuários padrão caso a tabela esteja vazia.
+        // IMPORTANTE: Em produção, substitua as senhas por um hash gerado com BCrypt.
+        if (usuarioRepository.count() == 0) {
+            System.out.println("🌱 Criando usuários de teste...");
+
+            usuarioRepository.save(Usuario.builder()
+                    .nome("Administrador")
+                    .cpf("000.000.000-00")
+                    .password("admin123")
+                    .role(UsuarioRole.ADMIN)
+                    .build());
+
+            usuarioRepository.save(Usuario.builder()
+                    .nome("Operador Padrão")
+                    .cpf("111.111.111-11")
+                    .password("operador123")
+                    .role(UsuarioRole.OPERADOR)
+                    .build());
+
+            usuarioRepository.save(Usuario.builder()
+                    .nome("Técnico de Manutenção")
+                    .cpf("222.222.222-22")
+                    .password("tecnico123")
+                    .role(UsuarioRole.TECNICO)
+                    .build());
+
+            System.out.println("🌱 Usuários criados: ADMIN, OPERADOR, TECNICO.");
+        }
+
+        // ─── Seeding de Armazéns e Estoques ───────────────────────────────────────
         if (armazemRepository.count() == 0) {
             System.out.println("🌱 Banco de dados vazio! Iniciando população de dados de teste...");
 
@@ -48,6 +80,8 @@ public class DataSeeder implements CommandLineRunner {
                     .nome("Estante A")
                     .capacidadeMaxima(100)
                     .capacidadeAtual(65)
+                    .x(100)
+                    .y(10)
                     .armazem(armazem)
                     .robot(robot1)
                     .build();
@@ -58,6 +92,8 @@ public class DataSeeder implements CommandLineRunner {
                     .nome("Estante B")
                     .capacidadeMaxima(150)
                     .capacidadeAtual(80)
+                    .x(200)
+                    .y(10)
                     .armazem(armazem)
                     .robot(robot2)
                     .build();
@@ -108,7 +144,7 @@ public class DataSeeder implements CommandLineRunner {
                     .build();
             logRepository.save(log2);
 
-            System.out.println("🌱 População de dados concluída com sucesso!");
+            System.out.println("🌱 População de dados de estoque concluída com sucesso!");
         } else {
             System.out.println("🌱 Banco de dados já possui dados, pulando seeding.");
         }

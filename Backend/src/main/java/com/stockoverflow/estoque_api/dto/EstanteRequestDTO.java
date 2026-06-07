@@ -12,6 +12,12 @@ public record EstanteRequestDTO(
     @Positive(message = "A capacidade máxima deve ser positiva")
     Integer capacidadeMaxima,
 
+    @NotNull(message = "A coordenada X é obrigatória")
+    Integer x,
+
+    @NotNull(message = "A coordenada Y é obrigatória")
+    Integer y,
+
     @NotBlank(message = "O ID do armazém é obrigatório")
     String armazemId
 ) {}

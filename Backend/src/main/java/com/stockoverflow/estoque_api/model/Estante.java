@@ -25,6 +25,12 @@ public class Estante {
     @Column(nullable = false)
     private Integer capacidadeAtual;
 
+    @Column(nullable = false)
+    private Integer x;
+
+    @Column(nullable = false)
+    private Integer y;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "armazem_id", nullable = false)
     private Armazem armazem;
