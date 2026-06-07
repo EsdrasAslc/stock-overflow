@@ -13,9 +13,9 @@ INSERT INTO robots (id, status, produto_atual_id) VALUES
 
 -- 3. Inserir Estantes (referenciando Armazéns e Robots)
 INSERT INTO estantes (id, nome, capacidade_maxima, capacidade_atual, x, y, armazem_id, robot_id) VALUES
-('EST-01', 'Estante A1', 100, 45, 100, 10, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-01'),
-('EST-02', 'Estante A2', 100, 80, 100, 20, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-02'),
-('EST-03', 'Estante B1', 150, 0, 200, 10, 'e3bd8234-8c88-4c8d-bf80-5a3b2b415a88', NULL);
+('EST-01', 'Estante A1', 100, 45, 1, 1, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-01'),
+('EST-02', 'Estante A2', 100, 80, 1, 2, 'b2ad8234-8c88-4c8d-bf80-5a3b2b415a77', 'ROB-02'),
+('EST-03', 'Estante B1', 150, 0, 2, 1, 'e3bd8234-8c88-4c8d-bf80-5a3b2b415a88', NULL);
 
 -- 4. Inserir Produtos (referenciando Estantes)
 INSERT INTO produtos (id, nome, quantidade, estante_id) VALUES

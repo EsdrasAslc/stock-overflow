@@ -80,8 +80,8 @@ public class DataSeeder implements CommandLineRunner {
                     .nome("Estante A")
                     .capacidadeMaxima(100)
                     .capacidadeAtual(65)
-                    .x(100)
-                    .y(10)
+                    .x(1)
+                    .y(1)
                     .armazem(armazem)
                     .robot(robot1)
                     .build();
@@ -92,8 +92,8 @@ public class DataSeeder implements CommandLineRunner {
                     .nome("Estante B")
                     .capacidadeMaxima(150)
                     .capacidadeAtual(80)
-                    .x(200)
-                    .y(10)
+                    .x(2)
+                    .y(1)
                     .armazem(armazem)
                     .robot(robot2)
                     .build();
