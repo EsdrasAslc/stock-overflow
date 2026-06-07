@@ -201,27 +201,6 @@ export default function Movimentacao() {
         </div>
       </div>
 
-      {/* Cards de ação */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:24 }}>
-        {[
-          { type: 'entrada' as const, icon: ArrowDownCircle, iconColor:'#10b981', bg:'#0d2e22', border:'#065f46', hoverBorder:'#10b981', title:'Registrar Entrada', desc:'Adicionar produto ao estoque', titleColor:'#6ee7b7', descColor:'#34d399' },
-          { type: 'saida'   as const, icon: ArrowUpCircle,   iconColor:'#f87171', bg:'#2d0f0f', border:'#7f1d1d', hoverBorder:'#ef4444', title:'Registrar Saída',   desc:'Retirar produto do estoque',  titleColor:'#fca5a5', descColor:'#f87171' },
-        ].map(({ type, icon: Icon, iconColor, bg, border, hoverBorder, title, desc, titleColor, descColor }) => (
-          <button key={type} onClick={() => { setSelectedPallet(null); setModal(type) }}
-            style={{ background:'#2a2a2a', border:`1px solid ${border}`, borderRadius:12, padding:24, cursor:'pointer', textAlign:'left', transition:'all 0.2s', display:'flex', flexDirection:'column', gap:12 }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = hoverBorder; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = border; (e.currentTarget as HTMLElement).style.transform = 'none' }}>
-            <div style={{ width:44, height:44, borderRadius:10, background:bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Icon size={22} color={iconColor} />
-            </div>
-            <div>
-              <div style={{ fontSize:15, fontWeight:700, color:titleColor, marginBottom:4 }}>{title}</div>
-              <div style={{ fontSize:13, color:descColor }}>{desc}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-
       {/* Mapa do armazém */}
       <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
