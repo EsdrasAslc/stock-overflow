@@ -4,15 +4,24 @@ import Login from '@/pages/Login/Login'
 import Dashboard from '@/pages/Dashboard/Dashboard'
 import Estoque from '@/pages/Estoque/Estoque'
 import Movimentacao from '@/pages/Movimentacao/Movimentacao'
+import Relatorios from '@/pages/Relatorios/Relatorios'
+import Configuracoes from '@/pages/Configuracoes/Configuracoes'
 import Sidebar from '@/components/Sidebar/Sidebar'
 
 function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
-  return match ? decodeURIComponent(match[2]) : null
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [key, val] = cookie.trim().split('=')
+    if (key === name) return val ? decodeURIComponent(val) : null
+  }
+  return null
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  if (!getCookie('session')) return <Navigate to="/login" replace />
+  const session = getCookie('session')
+  if (!session) {
+    return <Navigate to="/login" replace />
+  }
   return <>{children}</>
 }
 
@@ -54,6 +63,12 @@ function App() {
       } />
       <Route path="/movimentacao" element={
         <ProtectedRoute><AppLayout><Movimentacao /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/relatorios" element={
+        <ProtectedRoute><AppLayout><Relatorios /></AppLayout></ProtectedRoute>
+      } />
+      <Route path="/config" element={
+        <ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>
       } />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
