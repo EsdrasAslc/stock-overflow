@@ -2,7 +2,11 @@ package com.stockoverflow.estoque_api.dto;
 
 public record ProdutoResponseDTO(
     String id,
-    String nome,
-    Integer quantidade,
-    String estanteId
+    String code,
+    String name,
+    String category,
+    String position,
+    String entryDate,
+    String valDate,
+    Integer qty
 ) {}

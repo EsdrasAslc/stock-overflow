@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 public record UsuarioRequestDTO(
         @NotBlank(message = "O nome não pode estar em branco") String nome,
 
+        @NotBlank(message = "O usuário não pode estar em branco") String user,
+
         @NotBlank(message = "O cpf não pode estar em branco") String cpf,
 
         @NotBlank(message = "A senha não pode estar em branco") @Size(min = 6, message = "A senha deve ter pelo menos 6 caracteres") String password,

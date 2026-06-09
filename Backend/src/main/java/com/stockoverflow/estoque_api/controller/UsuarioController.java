@@ -27,9 +27,14 @@ public class UsuarioController {
         return service.buscarPorId(id);
     }
 
-    @GetMapping("/cpf/{cpf}")
-    public UsuarioResponseDTO buscarPorCpf(@PathVariable String cpf) {
-        return service.buscarPorCpf(cpf);
+    @PostMapping("/login")
+    public UsuarioResponseDTO login(@Valid @RequestBody com.stockoverflow.estoque_api.dto.LoginRequestDTO dto) {
+        return service.login(dto);
+    }
+
+    @GetMapping("/cpf")
+    public UsuarioResponseDTO buscarPorCpf(@RequestBody UsuarioRequestDTO dto) {
+        return service.buscarPorCpf(dto);
     }
 
     @PostMapping

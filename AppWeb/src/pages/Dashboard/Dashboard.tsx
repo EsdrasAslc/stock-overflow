@@ -115,18 +115,41 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [lastUpdate, setLastUpdate] = useState('30s atrás')
+  const [lastUpdate, setLastUpdate] = useState('Atualizando...')
   const [refreshing, setRefreshing] = useState(false)
+  const [metrics, setMetrics] = useState<any>({
+    kpis: { produtosCadastrados: 0, slotsOcupados: '0/0', vencem30Dias: 0, lotesVencidos: 0 },
+    categorias: [],
+    armazenamento: { occupied: 0, free: 0, pct: 0 },
+    robo: { status: '-', temperatura: '-', tempPct: 0, bateria: 0, ciclosTotais: '-', uptime: '-', ultimaManutencao: '-', firmware: '-' },
+    logs: []
+  })
+
+  const loadMetrics = () => {
+    setRefreshing(true)
+    fetch('http://localhost:8080/api/dashboard/metrics')
+      .then(res => res.json())
+      .then(data => {
+        setMetrics(data)
+        setLastUpdate('Agora')
+      })
+      .finally(() => setRefreshing(false))
+  }
 
   useEffect(() => {
-    const id = setInterval(() => setLastUpdate(p => p), 30000)
-    return () => clearInterval(id)
+    loadMetrics()
   }, [])
 
   const handleRefresh = () => {
-    setRefreshing(true)
-    setTimeout(() => { setRefreshing(false); setLastUpdate('Agora') }, 1200)
+    loadMetrics()
   }
+
+  const kpisToRender = [
+    { icon: Package,       color: '#10b981', bg: '#0d2e22', value: metrics.kpis.produtosCadastrados,    label: 'Produtos cadastrados' },
+    { icon: LayoutGrid,    color: '#3b82f6', bg: '#0d1f3d', value: metrics.kpis.slotsOcupados, label: 'Slots ocupados'       },
+    { icon: AlertTriangle, color: '#f59e0b', bg: '#2d2006', value: metrics.kpis.vencem30Dias,     label: 'Vencem em 30 dias'   },
+    { icon: Ban,           color: '#f87171', bg: '#2d0f0f', value: metrics.kpis.lotesVencidos,     label: 'Lotes vencidos'      },
+  ]
 
   return (
     <div style={{ background:'#1e1e1e', minHeight:'100vh', padding:24, fontFamily:"'Inter', sans-serif", color:'#f3f4f6' }}>
@@ -136,7 +159,7 @@ export default function Dashboard() {
         <div>
           <h1 style={{ margin:0, fontSize:22, fontWeight:700, color:'#f3f4f6' }}>Visualização do estoque</h1>
           <p style={{ margin:'4px 0 0', fontSize:12, color:'#6b7280' }}>
-            🕐 Atualizado {lastUpdate} · dados de demonstração
+            🕐 Atualizado {lastUpdate}
           </p>
         </div>
         <button onClick={handleRefresh} style={{ display:'flex', alignItems:'center', gap:8, background:'#2a2a2a', border:'1px solid #3a3a3a', color:'#f3f4f6', padding:'8px 16px', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:500 }}>
@@ -147,7 +170,7 @@ export default function Dashboard() {
 
       {/* ── KPIs ── */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:20 }}>
-        {mockKpis.map(({ icon: Icon, color, bg, value, label }) => (
+        {kpisToRender.map(({ icon: Icon, color, bg, value, label }) => (
           <div key={label} style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:'16px 20px', display:'flex', alignItems:'center', gap:14 }}>
             <div style={{ width:42, height:42, borderRadius:10, background:bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
               <Icon size={20} color={color} />
@@ -169,9 +192,9 @@ export default function Dashboard() {
             Categorias no estoque
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:20 }}>
-            <DonutChart data={mockCategories} size={120} />
+            <DonutChart data={metrics.categorias} size={120} />
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {mockCategories.map(c => (
+              {metrics.categorias.map((c: any) => (
                 <div key={c.label} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
                   <div style={{ width:10, height:10, borderRadius:'50%', background:c.color, flexShrink:0 }} />
                   <span style={{ color:'#d1d5db' }}>{c.label}</span>
@@ -190,13 +213,13 @@ export default function Dashboard() {
           <div style={{ display:'flex', alignItems:'center', gap:20 }}>
             <DonutChart
               data={[
-                { value: mockStorage.occupied, color: '#f59e0b' },
-                { value: mockStorage.free,     color: '#333333' },
+                { value: metrics.armazenamento.occupied, color: '#f59e0b' },
+                { value: metrics.armazenamento.free,     color: '#333333' },
               ]}
               size={120}
               centerText={
                 <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:22, fontWeight:800, color:'#f59e0b' }}>{mockStorage.pct}%</div>
+                  <div style={{ fontSize:22, fontWeight:800, color:'#f59e0b' }}>{metrics.armazenamento.pct}%</div>
                   <div style={{ fontSize:10, color:'#6b7280' }}>em uso</div>
                 </div>
               }
@@ -205,12 +228,12 @@ export default function Dashboard() {
               <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
                 <div style={{ width:10, height:10, borderRadius:'50%', background:'#f59e0b' }} />
                 <span style={{ color:'#d1d5db' }}>Ocupados</span>
-                <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{mockStorage.occupied}</span>
+                <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{metrics.armazenamento.occupied}</span>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
                 <div style={{ width:10, height:10, borderRadius:'50%', background:'#374151' }} />
                 <span style={{ color:'#d1d5db' }}>Livres</span>
-                <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{mockStorage.free}</span>
+                <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{metrics.armazenamento.free}</span>
               </div>
             </div>
           </div>
@@ -226,32 +249,32 @@ export default function Dashboard() {
               </span>
             </div>
             <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:99, background:'#1e2a1e', color:'#10b981', border:'1px solid #10b98133' }}>
-              ● {mockRobot.status}
+              ● {metrics.robo.status}
             </span>
           </div>
 
           <div style={{ marginBottom:10 }}>
             <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#9ca3af', marginBottom:4 }}>
               <span>Temperatura</span>
-              <span style={{ color:'#f59e0b', fontWeight:600 }}>{mockRobot.temperatura}</span>
+              <span style={{ color:'#f59e0b', fontWeight:600 }}>{metrics.robo.temperatura}</span>
             </div>
-            <ProgressBar value={mockRobot.tempPct} color="#f59e0b" />
+            <ProgressBar value={metrics.robo.tempPct} color="#f59e0b" />
           </div>
 
           <div style={{ marginBottom:16 }}>
             <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#9ca3af', marginBottom:4 }}>
               <span>Bateria</span>
-              <span style={{ color:'#10b981', fontWeight:600 }}>{mockRobot.bateria}%</span>
+              <span style={{ color:'#10b981', fontWeight:600 }}>{metrics.robo.bateria}%</span>
             </div>
-            <ProgressBar value={mockRobot.bateria} color="#10b981" />
+            <ProgressBar value={metrics.robo.bateria} color="#10b981" />
           </div>
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             {([
-              ['Ciclos totais',     mockRobot.ciclosTotais],
-              ['Uptime',            mockRobot.uptime],
-              ['Última manutenção', mockRobot.ultimaManutencao],
-              ['Firmware',          mockRobot.firmware],
+              ['Ciclos totais',     metrics.robo.ciclosTotais],
+              ['Uptime',            metrics.robo.uptime],
+              ['Última manutenção', metrics.robo.ultimaManutencao],
+              ['Firmware',          metrics.robo.firmware],
             ] as [string, string][]).map(([label, value]) => (
               <div key={label}>
                 <div style={{ fontSize:11, color:'#6b7280', marginBottom:2 }}>{label}</div>
@@ -279,38 +302,25 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {mockLog.map(row => (
-              <tr key={row.id} style={{ borderBottom:'1px solid #333' }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#333'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
-                <td style={{ padding:'12px', fontWeight:700, fontSize:13, color:'#f3f4f6' }}>{row.operator}</td>
-                <td style={{ padding:'12px' }}>
+            {metrics.logs.map((item: any) => (
+              <tr key={item.id} style={{ borderBottom:'1px solid #333' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background='#333'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background='transparent'}>
+                <td style={{ padding:'12px', fontSize:13, fontWeight:600, color:'#f3f4f6' }}>{item.operator}</td>
+                <td style={{ padding:'12px', fontSize:13 }}>
                   <span style={{
-                    fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:99,
-                    background: row.action === 'Guardar' ? '#0d2e22' : '#2d1a0d',
-                    color:      row.action === 'Guardar' ? '#10b981'  : '#f59e0b',
-                    border:     `1px solid ${row.action === 'Guardar' ? '#10b98133' : '#f59e0b33'}`,
+                    padding:'3px 10px', borderRadius:99, fontSize:11, fontWeight:700,
+                    background: item.action === 'Guardar' ? '#0d2e22' : '#2d0f0f',
+                    color: item.action === 'Guardar' ? '#10b981' : '#f87171',
+                    border: `1px solid ${item.action === 'Guardar' ? '#10b98133' : '#f8717133'}`
                   }}>
-                    {row.action === 'Guardar' ? '↓' : '↑'} {row.action}
+                    {item.action === 'Guardar' ? '↓ Guardar' : '↑ Retirar'}
                   </span>
                 </td>
-                <td style={{ padding:'12px', fontSize:13, color:'#d1d5db' }}>{row.product}</td>
-                <td style={{ padding:'12px' }}>
-                  <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:6, background:'#3a3a3a', color:'#9ca3af' }}>
-                    {row.position}
-                  </span>
-                </td>
-                <td style={{ padding:'12px' }}>
-                  <span style={{
-                    fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:99,
-                    background: row.status === 'SUCESSO' ? '#0d2e22' : '#2d0f0f',
-                    color:      row.status === 'SUCESSO' ? '#10b981'  : '#f87171',
-                    border:     `1px solid ${row.status === 'SUCESSO' ? '#10b98133' : '#f8717133'}`,
-                  }}>
-                    {row.status === 'SUCESSO' ? '✓' : '△'} {row.status}
-                  </span>
-                </td>
-                <td style={{ padding:'12px', fontSize:12, color:'#6b7280' }}>{row.time}</td>
+                <td style={{ padding:'12px', fontSize:13, color:'#d1d5db' }}>{item.product}</td>
+                <td style={{ padding:'12px', fontSize:13, color:'#9ca3af', fontFamily:'monospace' }}>{item.position}</td>
+                <td style={{ padding:'12px', fontSize:12, fontWeight:700, color: item.status==='SUCESSO'?'#10b981':'#f59e0b' }}>{item.status}</td>
+                <td style={{ padding:'12px', fontSize:12, color:'#6b7280' }}>{item.time}</td>
               </tr>
             ))}
           </tbody>

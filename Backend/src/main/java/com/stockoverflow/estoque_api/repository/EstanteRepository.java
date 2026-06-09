@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface EstanteRepository extends JpaRepository<Estante, String> {
     List<Estante> findByArmazemId(String armazemId);
+    java.util.Optional<Estante> findByNome(String nome);
 }

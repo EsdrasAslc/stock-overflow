@@ -29,6 +29,7 @@ public class DataSeeder implements CommandLineRunner {
 
             usuarioRepository.save(Usuario.builder()
                     .nome("Administrador")
+                    .user("admin")
                     .cpf("000.000.000-00")
                     .password("admin123")
                     .role(UsuarioRole.ADMIN)
@@ -36,6 +37,7 @@ public class DataSeeder implements CommandLineRunner {
 
             usuarioRepository.save(Usuario.builder()
                     .nome("Operador Padrão")
+                    .user("operador")
                     .cpf("111.111.111-11")
                     .password("operador123")
                     .role(UsuarioRole.OPERADOR)
@@ -43,6 +45,7 @@ public class DataSeeder implements CommandLineRunner {
 
             usuarioRepository.save(Usuario.builder()
                     .nome("Técnico de Manutenção")
+                    .user("tecnico")
                     .cpf("222.222.222-22")
                     .password("tecnico123")
                     .role(UsuarioRole.TECNICO)

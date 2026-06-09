@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>      // Requer a biblioteca ArduinoJson de Benoit Blanchon
 
 const char* ssid     = "Esdras";
-const char* password = "docinho2020";
+const char* password = "123456789";
 
 // Instancia o servidor WebSocket na porta 81 (Padrão para WebSockets)
 WebSocketsServer webSocket = WebSocketsServer(81);

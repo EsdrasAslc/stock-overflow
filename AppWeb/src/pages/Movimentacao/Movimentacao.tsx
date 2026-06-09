@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowDownCircle, ArrowUpCircle, Package, X, Bot, Activity } from 'lucide-react'
 
 interface Product {
@@ -25,15 +25,31 @@ const shelfPositions = [
 ]
 
 // ─── Modal Entrada ────────────────────────────────────────────────────────────
-function ModalEntrada({ onClose }: { onClose: () => void }) {
+function ModalEntrada({ onClose, onRefresh }: { onClose: () => void, onRefresh?: () => void }) {
   const [form, setForm] = useState({ produto: '', quantidade: '', posicao: '', fornecedor: '', nf: '' })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const handle = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
-  const submit = () => {
+  const submit = async () => {
     if (!form.produto || !form.quantidade || !form.posicao) return
     setLoading(true)
-    setTimeout(() => { setLoading(false); setSuccess(true) }, 1200)
+    try {
+      await fetch('http://localhost:8080/api/produtos/entrada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          produto: form.produto,
+          quantidade: parseInt(form.quantidade),
+          posicao: form.posicao,
+          fornecedor: form.fornecedor,
+          nf: form.nf
+        })
+      })
+      setSuccess(true)
+      if (onRefresh) onRefresh()
+    } finally {
+      setLoading(false)
+    }
   }
   return (
     <div style={overlay}>
@@ -57,39 +73,34 @@ function ModalEntrada({ onClose }: { onClose: () => void }) {
         ) : (
           <>
             <div style={formGrid}>
-              <div style={formGroup}>
-                <label style={labelStyle}>Produto *</label>
-                <select style={inputStyle} value={form.produto} onChange={e => handle('produto', e.target.value)}>
-                  <option value="">Selecionar...</option>
-                  {mockProdutos.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name}</option>)}
-                </select>
+              <div style={{...formGroup, gridColumn:'span 2'}}>
+                <label style={labelStyle}>Produto / Código *</label>
+                <input style={inputStyle} placeholder="Ex: HW-001" value={form.produto} onChange={e => handle('produto', e.target.value)} />
               </div>
               <div style={formGroup}>
                 <label style={labelStyle}>Quantidade *</label>
-                <input style={inputStyle} type="number" min={1} placeholder="0"
-                  value={form.quantidade} onChange={e => handle('quantidade', e.target.value)} />
+                <input style={inputStyle} type="number" min={1} placeholder="0" value={form.quantidade} onChange={e => handle('quantidade', e.target.value)} />
               </div>
               <div style={formGroup}>
-                <label style={labelStyle}>Posição de destino *</label>
-                <input style={inputStyle} type="text" placeholder="Ex: 1A1"
-                  value={form.posicao} onChange={e => handle('posicao', e.target.value)} />
+                <label style={labelStyle}>Posição *</label>
+                <select style={inputStyle} value={form.posicao} onChange={e => handle('posicao', e.target.value)}>
+                  <option value="">Selecionar...</option>
+                  {shelfPositions.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
               </div>
               <div style={formGroup}>
                 <label style={labelStyle}>Fornecedor</label>
-                <input style={inputStyle} type="text" placeholder="Nome do fornecedor"
-                  value={form.fornecedor} onChange={e => handle('fornecedor', e.target.value)} />
+                <input style={inputStyle} type="text" placeholder="Nome do fornecedor" value={form.fornecedor} onChange={e => handle('fornecedor', e.target.value)} />
               </div>
-              <div style={{ ...formGroup, gridColumn:'span 2' }}>
+              <div style={{...formGroup, gridColumn:'span 2'}}>
                 <label style={labelStyle}>Nota fiscal</label>
-                <input style={inputStyle} type="text" placeholder="Nº da NF"
-                  value={form.nf} onChange={e => handle('nf', e.target.value)} />
+                <input style={inputStyle} type="text" placeholder="Nº da NF" value={form.nf} onChange={e => handle('nf', e.target.value)} />
               </div>
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
               <button onClick={onClose} style={btnSecondary}>Cancelar</button>
-              <button onClick={submit} disabled={loading}
-                style={{ ...btnPrimary, background:'#10b981', opacity: loading ? 0.7 : 1 }}>
-                {loading ? 'Enviando...' : 'Confirmar entrada'}
+              <button onClick={submit} disabled={loading} style={{ ...btnPrimary, background:'#10b981', opacity: loading ? 0.7 : 1 }}>
+                {loading ? 'Processando...' : 'Confirmar entrada'}
               </button>
             </div>
           </>
@@ -100,15 +111,29 @@ function ModalEntrada({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Modal Saída ──────────────────────────────────────────────────────────────
-function ModalSaida({ onClose, produto }: { onClose: () => void; produto: Product | null }) {
-  const [form, setForm] = useState({ produto: produto?.code || '', quantidade: '', motivo: '' })
+function ModalSaida({ onClose, inventory, onRefresh, produto }: { onClose: () => void, inventory: Product[], onRefresh?: () => void, produto?: Product | null }) {
+  const [form, setForm] = useState({ produto: produto ? produto.code : '', quantidade: '', motivo: '' })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const handle = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
-  const submit = () => {
+  const submit = async () => {
     if (!form.produto || !form.quantidade) return
     setLoading(true)
-    setTimeout(() => { setLoading(false); setSuccess(true) }, 1200)
+    try {
+      await fetch('http://localhost:8080/api/produtos/saida', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          produto: form.produto,
+          quantidade: parseInt(form.quantidade),
+          motivo: form.motivo
+        })
+      })
+      setSuccess(true)
+      if (onRefresh) onRefresh()
+    } finally {
+      setLoading(false)
+    }
   }
   return (
     <div style={overlay}>
@@ -136,7 +161,7 @@ function ModalSaida({ onClose, produto }: { onClose: () => void; produto: Produc
                 <label style={labelStyle}>Produto *</label>
                 <select style={inputStyle} value={form.produto} onChange={e => handle('produto', e.target.value)}>
                   <option value="">Selecionar...</option>
-                  {mockProdutos.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name} ({p.qty} un.)</option>)}
+                  {inventory.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name} ({p.qty} un.)</option>)}
                 </select>
               </div>
               <div style={formGroup}>
@@ -174,6 +199,17 @@ function ModalSaida({ onClose, produto }: { onClose: () => void; produto: Produc
 export default function Movimentacao() {
   const [modal, setModal]                   = useState<'entrada' | 'saida' | null>(null)
   const [selectedPallet, setSelectedPallet] = useState<Product | null>(null)
+  const [inventory, setInventory]           = useState<Product[]>([])
+
+  const loadInventory = () => {
+    fetch('http://localhost:8080/api/produtos')
+      .then(res => res.json())
+      .then(data => setInventory(data))
+  }
+
+  useEffect(() => {
+    loadInventory()
+  }, [])
 
   const openSaida = (produto: Product) => {
     setSelectedPallet(produto)
@@ -213,7 +249,7 @@ export default function Movimentacao() {
           {/* Grade */}
           <div style={{ flex:2, display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, background:'#1e1e1e', padding:16, borderRadius:8, border:'3px solid #4b5563' }}>
             {shelfPositions.map(pos => {
-              const item = mockProdutos.find(i => i.position === pos)
+              const item = inventory.find(i => i.position === pos)
               const isSelected = selectedPallet?.position === pos
               return item ? (
                 <div key={pos} onClick={() => setSelectedPallet(isSelected ? null : item)}
@@ -270,8 +306,8 @@ export default function Movimentacao() {
         </div>
       </div>
 
-      {modal === 'entrada' && <ModalEntrada onClose={() => setModal(null)} />}
-      {modal === 'saida'   && <ModalSaida  onClose={() => { setModal(null); setSelectedPallet(null) }} produto={selectedPallet} />}
+      {modal === 'entrada' && <ModalEntrada onClose={() => setModal(null)} onRefresh={loadInventory} />}
+      {modal === 'saida'   && <ModalSaida  onClose={() => { setModal(null); setSelectedPallet(null) }} inventory={inventory} onRefresh={loadInventory} produto={selectedPallet} />}
     </div>
   )
 }

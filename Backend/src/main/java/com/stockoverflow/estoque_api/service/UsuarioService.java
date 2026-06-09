@@ -33,6 +33,7 @@ public class UsuarioService {
         }
         Usuario usuario = Usuario.builder()
                 .nome(dto.nome())
+                .user(dto.user())
                 .cpf(dto.cpf())
                 .password(dto.password())
                 .role(dto.role())
@@ -40,10 +41,20 @@ public class UsuarioService {
         return toDTO(repository.save(usuario));
     }
 
+    public UsuarioResponseDTO login(com.stockoverflow.estoque_api.dto.LoginRequestDTO dto) {
+        Usuario usuario = repository.findByUser(dto.user())
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        if (!usuario.getPassword().equals(dto.password())) {
+            throw new RuntimeException("Senha incorreta");
+        }
+        return toDTO(usuario);
+    }
+
     public UsuarioResponseDTO atualizar(String id, UsuarioRequestDTO dto) {
         Usuario usuario = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
         usuario.setNome(dto.nome());
+        usuario.setUser(dto.user());
         usuario.setPassword(dto.password());
         usuario.setRole(dto.role());
         usuario.setCpf(dto.cpf());
@@ -57,8 +68,8 @@ public class UsuarioService {
         repository.deleteById(id);
     }
 
-    public UsuarioResponseDTO buscarPorCpf(String cpf) {
-        Usuario usuario = repository.findByCpf(cpf)
+    public UsuarioResponseDTO buscarPorCpf(UsuarioRequestDTO dto) {
+        Usuario usuario = repository.findByCpf(dto.cpf())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
         return toDTO(usuario);
     }
@@ -67,9 +78,9 @@ public class UsuarioService {
         if (usuario == null)
             return null;
         return new UsuarioResponseDTO(
-                usuario.getId(),
+                
                 usuario.getNome(),
-                usuario.getCpf(),
+                usuario.getUser(),
                 usuario.getRole() != null ? usuario.getRole().name() : null);
     }
 }

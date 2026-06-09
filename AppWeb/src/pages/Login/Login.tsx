@@ -22,20 +22,19 @@ export default function Login() {
     setLoading(true)
 
     // ── Substitua pelo fetch real quando tiver API ───────────────────────────
-    // const res  = await fetch('http://localhost:8080/api/auth/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(form),
-    // })
-    // const data = await res.json()
-    // if (!res.ok) { setError(data.message || 'Credenciais inválidas.'); setLoading(false); return }
-    // document.cookie = `username=${encodeURIComponent(data.nome)}; path=/; max-age=86400`
-    // ────────────────────────────────────────────────────────────────────────
-
-    // Simulação — remova em produção
-    await new Promise(r => setTimeout(r, 1000))
+    const res  = await fetch('http://localhost:8080/api/usuarios/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    const data = await res.json()
+    console.log(data)
+    if (!res.ok) { setError(data.message || 'Credenciais inválidas.'); setLoading(false); return }
+    
+    // Salva a sessão, o username e a role retornado pelo backend
     document.cookie = `session=authenticated; path=/; max-age=86400`
-    document.cookie = `username=${encodeURIComponent(form.user)}; path=/; max-age=86400`
+    document.cookie = `username=${encodeURIComponent(data.user)}; path=/; max-age=86400`
+    document.cookie = `role=${encodeURIComponent(data.role)}; path=/; max-age=86400`
 
     setLoading(false)
     navigate('/dashboard')

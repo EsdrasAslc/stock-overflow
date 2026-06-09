@@ -12,6 +12,8 @@ DROP TABLE IF EXISTS usuarios CASCADE;
 DROP TYPE IF EXISTS robot_status CASCADE;
 DROP TYPE IF EXISTS tipo_log CASCADE;
 DROP TYPE IF EXISTS usuario_role CASCADE;
+DROP TYPE IF EXISTS StatusMovimentacao CASCADE;
+DROP TYPE IF EXISTS tipo_movimento CASCADE;
 
 -- Criando ENUMs
 CREATE TYPE robot_status AS ENUM ('AGUARDANDO', 'EM_MOVIMENTO', 'MANUTENCAO');
@@ -52,10 +54,15 @@ CREATE TABLE estantes (
 
 -- 4. Tabela produtos
 CREATE TABLE produtos (
-    id         VARCHAR(36)  PRIMARY KEY,
-    nome       VARCHAR(255) NOT NULL,
-    quantidade INTEGER      NOT NULL,
-    estante_id VARCHAR(36)  NOT NULL,
+    id            VARCHAR(36)  PRIMARY KEY,
+    codigo        VARCHAR(50)  NOT NULL,
+    nome          VARCHAR(255) NOT NULL,
+    categoria     VARCHAR(100),
+    quantidade    INTEGER      NOT NULL,
+    data_entrada  VARCHAR(20),
+    data_saida    VARCHAR(20),
+    data_validade VARCHAR(20),
+    estante_id    VARCHAR(36)  NOT NULL,
     FOREIGN KEY (estante_id) REFERENCES estantes(id) ON DELETE CASCADE
 );
 
@@ -93,6 +100,7 @@ CREATE TABLE logs (
 CREATE TABLE usuarios (
     id       VARCHAR(36)   PRIMARY KEY,
     nome     VARCHAR(255)  NOT NULL,
+    username VARCHAR(255)  NOT NULL UNIQUE,
     cpf      VARCHAR(14)   NOT NULL UNIQUE,
     password VARCHAR(255)  NOT NULL,
     role     usuario_role  NOT NULL

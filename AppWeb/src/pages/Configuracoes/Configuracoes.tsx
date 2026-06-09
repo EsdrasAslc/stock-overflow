@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Users, Warehouse, Settings,
   Plus, Pencil, Trash2, Save, X, Eye, EyeOff,
@@ -58,36 +58,75 @@ const modal:   React.CSSProperties = { background:'#2a2a2a', border:'1px solid #
 
 // ─── Aba: Usuários ────────────────────────────────────────────────────────────
 function TabUsuarios() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>(mockUsuarios)
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [modalType, setModalType] = useState<ModalType>(null)
   const [editando, setEditando] = useState<Usuario | null>(null)
   const [showPass, setShowPass] = useState(false)
-  const [form, setForm] = useState({ nome:'', email:'', perfil:'Operador' as Perfil, senha:'' })
+  const [form, setForm] = useState({ nome:'', user:'', cpf:'', role:'OPERADOR', password:'' })
+
+  useEffect(() => {
+    fetch('http://localhost:8080/api/usuarios')
+      .then(res => res.json())
+      .then(data => {
+        // Mapeando do formato do backend para o frontend
+        const mapped = data.map((u: any) => ({
+          id: u.id,
+          nome: u.nome,
+          email: u.user, // Usando user no lugar de email provisoriamente
+          perfil: u.role === 'ADMIN' ? 'Gerente' : 'Operador',
+          ativo: true,
+          ultimoAcesso: 'agora'
+        }))
+        setUsuarios(mapped)
+      })
+  }, [])
 
   const abrirNovo = () => {
-    setForm({ nome:'', email:'', perfil:'Operador', senha:'' })
+    setForm({ nome:'', user:'', cpf:'', role:'OPERADOR', password:'' })
     setEditando(null)
     setModalType('novo_usuario')
   }
 
   const abrirEditar = (u: Usuario) => {
-    setForm({ nome:u.nome, email:u.email, perfil:u.perfil, senha:'' })
+    setForm({ nome:u.nome, user:u.email, cpf:'', role: u.perfil === 'Gerente' ? 'ADMIN' : 'OPERADOR', password:'' })
     setEditando(u)
     setModalType('editar_usuario')
   }
 
-  const salvar = () => {
-    if (!form.nome || !form.email) return
-    if (editando) {
-      setUsuarios(p => p.map(u => u.id === editando.id ? { ...u, ...form } : u))
-    } else {
-      setUsuarios(p => [...p, { id: Date.now(), nome:form.nome, email:form.email, perfil:form.perfil, ativo:true, ultimoAcesso:'agora' }])
-    }
+  const salvar = async () => {
+    if (!form.nome || !form.user) return
+    const method = editando ? 'PUT' : 'POST'
+    const url = editando ? `http://localhost:8080/api/usuarios/${editando.id}` : 'http://localhost:8080/api/usuarios'
+    
+    // CPF é obrigatório no backend, gerando um random para testes se não preenchido
+    if (!form.cpf) form.cpf = Math.random().toString().slice(2, 13)
+
+    await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    })
+    
+    // Atualiza a lista
+    const res = await fetch('http://localhost:8080/api/usuarios')
+    const data = await res.json()
+    const mapped = data.map((u: any) => ({
+      id: u.id,
+      nome: u.nome,
+      email: u.user,
+      perfil: u.role === 'ADMIN' ? 'Gerente' : 'Operador',
+      ativo: true,
+      ultimoAcesso: 'agora'
+    }))
+    setUsuarios(mapped)
     setModalType(null)
   }
 
   const toggleAtivo = (id: number) => setUsuarios(p => p.map(u => u.id === id ? { ...u, ativo: !u.ativo } : u))
-  const excluir     = (id: number) => setUsuarios(p => p.filter(u => u.id !== id))
+  const excluir = async (id: number | string) => {
+    await fetch(`http://localhost:8080/api/usuarios/${id}`, { method: 'DELETE' })
+    setUsuarios(p => p.filter(u => u.id !== id))
+  }
 
   return (
     <>
@@ -159,16 +198,17 @@ function TabUsuarios() {
             </div>
             <div style={row}>
               <div style={{ flex:1 }}>
-                <label style={label}>E-mail *</label>
-                <input style={inp} type="email" value={form.email} onChange={e => setForm(p=>({...p,email:e.target.value}))} placeholder="email@empresa.com" />
+                <label style={label}>E-mail (Username) *</label>
+                <input style={inp} type="text" value={form.user} onChange={e => setForm(p=>({...p,user:e.target.value}))} placeholder="username" />
               </div>
             </div>
             <div style={row}>
               <div style={{ flex:1 }}>
                 <label style={label}>Perfil *</label>
-                <select style={inp} value={form.perfil} onChange={e => setForm(p=>({...p,perfil:e.target.value as Perfil}))}>
+                <select style={inp} value={form.role === 'ADMIN' ? 'Gerente' : 'Operador'} onChange={e => setForm(p=>({...p,role:e.target.value === 'Gerente' ? 'ADMIN' : 'OPERADOR'}))}>
                   <option style={{background:'#1e1e1e'}}>Gerente</option>
                   <option style={{background:'#1e1e1e'}}>Operador</option>
+                  <option style={{background:'#1e1e1e'}}>Técnico</option>
                 </select>
               </div>
               <div style={{ flex:1 }}>

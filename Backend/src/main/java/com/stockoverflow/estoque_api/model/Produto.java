@@ -18,10 +18,25 @@ public class Produto {
     private String id;
 
     @Column(nullable = false)
+    private String codigo;
+
+    @Column(nullable = false)
     private String nome;
+
+    @Column
+    private String categoria;
 
     @Column(nullable = false)
     private Integer quantidade;
+
+    @Column(name = "data_entrada")
+    private String dataEntrada;
+
+    @Column(name = "data_saida")
+    private String dataSaida;
+
+    @Column(name = "data_validade")
+    private String dataValidade;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estante_id", nullable = false)

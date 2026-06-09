@@ -24,7 +24,4 @@ public class Robot {
     @JoinColumn(name = "produto_atual_id")
     private Produto produtoAtual;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "estante_atual_id")
-    private Estante estanteAtual;
 }

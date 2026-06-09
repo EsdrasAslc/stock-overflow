@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface ProdutoRepository extends JpaRepository<Produto, String> {
     List<Produto> findByEstanteId(String estanteId);
+    List<Produto> findByCodigo(String codigo);
+    java.util.Optional<Produto> findByCodigoAndEstanteNome(String codigo, String estanteNome);
 }

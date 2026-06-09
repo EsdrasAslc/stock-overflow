@@ -62,6 +62,22 @@ public class EstanteService {
         return robotService.toDTO(estante.getRobot());
     }
 
+    public Estante encontrarOuCriarPorNome(String nome) {
+        return repository.findByNome(nome).orElseGet(() -> {
+            Armazem armazem = armazemRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> new RuntimeException("Nenhum armazém disponível para criar estante"));
+            Estante nova = Estante.builder()
+                    .nome(nome)
+                    .capacidadeMaxima(100)
+                    .capacidadeAtual(0)
+                    .x(1) // default
+                    .y(1) // default
+                    .armazem(armazem)
+                    .build();
+            return repository.save(nova);
+        });
+    }
+
     public EstanteResponseDTO criar(EstanteRequestDTO dto) {
         Armazem armazem = armazemRepository.findById(dto.armazemId())
                 .orElseThrow(() -> new RuntimeException("Armazém não encontrado"));

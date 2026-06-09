@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Estante {
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id; // e.g. "EST-01"
 
     @Column(nullable = false)

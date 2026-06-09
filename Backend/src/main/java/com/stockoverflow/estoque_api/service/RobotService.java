@@ -47,8 +47,7 @@ public class RobotService {
         return new RobotResponseDTO(
                 robot.getId(),
                 robot.getStatus() != null ? robot.getStatus().name() : null,
-                produtoAtual,
-                robot.getEstanteAtual() != null ? robot.getEstanteAtual().getId() : null
+                produtoAtual
         );
     }
 }

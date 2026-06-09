@@ -33,6 +33,16 @@ public class ProdutoController {
         return service.criar(dto);
     }
 
+    @PostMapping("/entrada")
+    public ProdutoResponseDTO registrarEntrada(@Valid @RequestBody com.stockoverflow.estoque_api.dto.ProdutoEntradaDTO dto) {
+        return service.registrarEntrada(dto);
+    }
+
+    @PostMapping("/saida")
+    public ProdutoResponseDTO registrarSaida(@Valid @RequestBody com.stockoverflow.estoque_api.dto.ProdutoSaidaDTO dto) {
+        return service.registrarSaida(dto);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletar(@PathVariable String id) {

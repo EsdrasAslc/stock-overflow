@@ -20,6 +20,9 @@ public class Usuario {
     @Column(nullable = false)
     private String nome;
 
+    @Column(name = "username", nullable = false, unique = true)
+    private String user;
+
     @Column(nullable = false, unique = true)
     private String cpf;
 

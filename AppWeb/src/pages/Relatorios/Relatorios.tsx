@@ -86,8 +86,15 @@ function statusColor(days: number): { bg: string; color: string; label: string }
 // ─── Componente: aba de vencimento ────────────────────────────────────────────
 function TabVencimento() {
   const [filter, setFilter] = useState<'todos' | 'vencidos' | 'criticos' | 'atencao'>('todos')
+  const [vencimentos, setVencimentos] = useState<Product[]>([])
 
-  const filtered = mockExpiring.filter(p => {
+  useEffect(() => {
+    fetch('http://localhost:8080/api/relatorios/vencimentos')
+      .then(res => res.json())
+      .then(data => setVencimentos(data))
+  }, [])
+
+  const filtered = vencimentos.filter(p => {
     if (filter === 'vencidos')  return p.daysLeft < 0
     if (filter === 'criticos')  return p.daysLeft >= 0 && p.daysLeft <= 7
     if (filter === 'atencao')   return p.daysLeft > 7 && p.daysLeft <= 30
@@ -95,9 +102,9 @@ function TabVencimento() {
   })
 
   const counts = {
-    vencidos:  mockExpiring.filter(p => p.daysLeft < 0).length,
-    criticos:  mockExpiring.filter(p => p.daysLeft >= 0 && p.daysLeft <= 7).length,
-    atencao:   mockExpiring.filter(p => p.daysLeft > 7 && p.daysLeft <= 30).length,
+    vencidos:  vencimentos.filter(p => p.daysLeft < 0).length,
+    criticos:  vencimentos.filter(p => p.daysLeft >= 0 && p.daysLeft <= 7).length,
+    atencao:   vencimentos.filter(p => p.daysLeft > 7 && p.daysLeft <= 30).length,
   }
 
   return (
@@ -161,8 +168,15 @@ function TabVencimento() {
 function TabFalhas() {
   const [showResolved, setShowResolved] = useState(false)
   const [expanded, setExpanded]         = useState<number | null>(null)
+  const [falhas, setFalhas] = useState<Failure[]>([])
 
-  const filtered = showResolved ? mockFailures : mockFailures.filter(f => !f.resolved)
+  useEffect(() => {
+    fetch('http://localhost:8080/api/relatorios/falhas')
+      .then(res => res.json())
+      .then(data => setFalhas(data))
+  }, [])
+
+  const filtered = showResolved ? falhas : falhas.filter(f => !f.resolved)
 
   const typeColor: Record<string, { bg: string; color: string }> = {
     Sensor:   { bg:'#1e3a5f', color:'#60a5fa' },
@@ -178,10 +192,10 @@ function TabFalhas() {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <div style={{ display:'flex', gap:8 }}>
           <span style={{ padding:'4px 12px', borderRadius:99, background:'#2d0f0f', color:'#f87171', fontSize:12, fontWeight:600, border:'1px solid #f8717133' }}>
-            {mockFailures.filter(f => !f.resolved).length} pendentes
+            {falhas.filter(f => !f.resolved).length} pendentes
           </span>
           <span style={{ padding:'4px 12px', borderRadius:99, background:'#0d2e22', color:'#10b981', fontSize:12, fontWeight:600, border:'1px solid #10b98133' }}>
-            {mockFailures.filter(f => f.resolved).length} resolvidas
+            {falhas.filter(f => f.resolved).length} resolvidas
           </span>
         </div>
         <button onClick={() => setShowResolved(p => !p)}
@@ -252,8 +266,15 @@ function TabHistorico() {
   const [action, setAction]       = useState('Todos')
   const [dateFrom, setDateFrom]   = useState('')
   const [dateTo, setDateTo]       = useState('')
+  const [historico, setHistorico] = useState<Movement[]>([])
 
-  const filtered = mockMovements.filter(m => {
+  useEffect(() => {
+    fetch('http://localhost:8080/api/relatorios/movimentacoes')
+      .then(res => res.json())
+      .then(data => setHistorico(data))
+  }, [])
+
+  const filtered = historico.filter(m => {
     const matchSearch   = m.product.toLowerCase().includes(search.toLowerCase()) || m.code.toLowerCase().includes(search.toLowerCase())
     const matchOperator = operator === 'Todos' || m.operator === operator
     const matchAction   = action   === 'Todos' || m.action   === action

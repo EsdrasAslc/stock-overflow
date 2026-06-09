@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Package, Search, Calendar, AlertCircle, List, LayoutGrid, ArrowLeft, Plus, ArrowDownCircle, ArrowUpCircle, X } from 'lucide-react'
 import styles from './Estoque.module.css'
@@ -27,16 +27,50 @@ const shelfPositions = [
 ]
 
 // ─── Modal Entrada ────────────────────────────────────────────────────────────
-function ModalEntrada({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ produto: '', quantidade: '', posicao: '', fornecedor: '', nf: '' })
+function ModalEntrada({ onClose, inventory, onRefresh }: { onClose: () => void, inventory: Product[], onRefresh?: () => void }) {
+  const [form, setForm] = useState({ produto: '', nome: '', categoria: '', dataValidade: '', quantidade: '', posicao: '', fornecedor: '', nf: '' })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const handle = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
-  const submit = () => {
+  const submit = async () => {
     if (!form.produto || !form.quantidade || !form.posicao) return
     setLoading(true)
-    setTimeout(() => { setLoading(false); setSuccess(true) }, 1200)
+    console.log(form)
+    try {
+      await fetch('http://localhost:8080/api/produtos/entrada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          produto: form.produto,
+          nome: form.nome,
+          categoria: form.categoria,
+          dataValidade: form.dataValidade,
+          quantidade: parseInt(form.quantidade),
+          posicao: form.posicao,
+          fornecedor: form.fornecedor,
+          nf: form.nf
+        })
+      })
+      setSuccess(true)
+      if (onRefresh) onRefresh()
+    } finally {
+      setLoading(false)
+    }
   }
+
+  // Pre-fill nome se produto já existir no inventário
+  useEffect(() => {
+    if (form.produto) {
+      const existing = inventory.find(p => p.code === form.produto)
+      if (existing) {
+        setForm(p => ({ ...p, nome: existing.name }))
+      }
+    }
+  }, [form.produto, inventory])
+
+  const occupiedPositions = inventory.map(p => p.position);
+  const availablePositions = shelfPositions.filter(s => !occupiedPositions.includes(s) || s === form.posicao);
+
   return (
     <div style={overlay}>
       <div style={modal}>
@@ -45,7 +79,7 @@ function ModalEntrada({ onClose }: { onClose: () => void }) {
             <div style={{ width:36, height:36, borderRadius:8, background:'#0d2e22', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <ArrowDownCircle size={18} color="#10b981" />
             </div>
-            <h2 style={{ margin:0, fontSize:17, color:'#f3f4f6' }}>Registrar Entrada</h2>
+            <h2 style={{ margin:0, fontSize:17, color:'#f3f4f6' }}>Registrar Entrada / Novo Produto</h2>
           </div>
           <button onClick={onClose} style={closeBtn}><X size={18} /></button>
         </div>
@@ -59,33 +93,45 @@ function ModalEntrada({ onClose }: { onClose: () => void }) {
           <>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <label style={labelStyle}>Produto *</label>
-                <select style={inputStyle} value={form.produto} onChange={e => handle('produto', e.target.value)}>
-                  <option value="">Selecionar...</option>
-                  {mockInventory.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name}</option>)}
-                </select>
+                <label style={labelStyle}>Produto / Código *</label>
+                <input style={inputStyle} placeholder="Ex: HW-001" value={form.produto} onChange={e => handle('produto', e.target.value)} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Nome do Produto</label>
+                <input style={inputStyle} placeholder="Nome (se for novo)" value={form.nome} onChange={e => handle('nome', e.target.value)} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Categoria</label>
+                <input style={inputStyle} placeholder="Ex: Eletrônicos" value={form.categoria} onChange={e => handle('categoria', e.target.value)} />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Data Validade</label>
+                <input style={inputStyle} type="date" value={form.dataValidade} onChange={e => handle('dataValidade', e.target.value)} />
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 <label style={labelStyle}>Quantidade *</label>
                 <input style={inputStyle} type="number" min={1} placeholder="0" value={form.quantidade} onChange={e => handle('quantidade', e.target.value)} />
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <label style={labelStyle}>Posição *</label>
-                <input style={inputStyle} type="text" placeholder="Ex: 1A1" value={form.posicao} onChange={e => handle('posicao', e.target.value)} />
+                <label style={labelStyle}>Posição / Estante (Vagas) *</label>
+                <select style={inputStyle} value={form.posicao} onChange={e => handle('posicao', e.target.value)}>
+                  <option value="">Selecionar...</option>
+                  {availablePositions.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 <label style={labelStyle}>Fornecedor</label>
-                <input style={inputStyle} type="text" placeholder="Nome do fornecedor" value={form.fornecedor} onChange={e => handle('fornecedor', e.target.value)} />
+                <input style={inputStyle} placeholder="Opcional" value={form.fornecedor} onChange={e => handle('fornecedor', e.target.value)} />
               </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6, gridColumn:'span 2' }}>
-                <label style={labelStyle}>Nota fiscal</label>
-                <input style={inputStyle} type="text" placeholder="Nº da NF" value={form.nf} onChange={e => handle('nf', e.target.value)} />
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <label style={labelStyle}>Nota Fiscal</label>
+                <input style={inputStyle} placeholder="Opcional" value={form.nf} onChange={e => handle('nf', e.target.value)} />
               </div>
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
               <button onClick={onClose} style={btnSecondary}>Cancelar</button>
               <button onClick={submit} disabled={loading} style={{ ...btnPrimary, background:'#10b981', opacity: loading ? 0.7 : 1 }}>
-                {loading ? 'Enviando...' : 'Confirmar entrada'}
+                {loading ? 'Processando...' : 'Confirmar entrada'}
               </button>
             </div>
           </>
@@ -96,63 +142,118 @@ function ModalEntrada({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Modal Saída ──────────────────────────────────────────────────────────────
-function ModalSaida({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ produto: '', quantidade: '', motivo: '' })
+function ModalSaida({ onClose, inventory, onRefresh }: { onClose: () => void, inventory: Product[], onRefresh?: () => void }) {
+  const [form, setForm] = useState({ search: '', produtoCode: '', quantidade: '', motivo: '', posicao: '' })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  
   const handle = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
-  const submit = () => {
-    if (!form.produto || !form.quantidade) return
+  
+  const filteredProducts = inventory.filter(p => p.name.toLowerCase().includes(form.search.toLowerCase()) || p.code.toLowerCase().includes(form.search.toLowerCase()))
+  
+  const submit = async () => {
+    if (!form.produtoCode || !form.quantidade || !form.posicao) return
     setLoading(true)
-    setTimeout(() => { setLoading(false); setSuccess(true) }, 1200)
+    try {
+      await fetch('http://localhost:8080/api/produtos/saida', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          produto: form.produtoCode,
+          quantidade: parseInt(form.quantidade),
+          motivo: form.motivo,
+          posicao: form.posicao
+        })
+      })
+      setSuccess(true)
+      if (onRefresh) onRefresh()
+    } finally {
+      setLoading(false)
+    }
   }
   return (
     <div style={overlay}>
       <div style={modal}>
         <div style={modalHeader}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:8, background:'#2d0f0f', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <ArrowUpCircle size={18} color="#f87171" />
+            <div style={{ width:36, height:36, borderRadius:8, background:'#3f1a26', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <ArrowUpCircle size={18} color="#ef4444" />
             </div>
-            <h2 style={{ margin:0, fontSize:17, color:'#f3f4f6' }}>Registrar Saída</h2>
+            <h2 style={{ margin:0, fontSize:17, color:'#f3f4f6' }}>Solicitar Extração</h2>
           </div>
           <button onClick={onClose} style={closeBtn}><X size={18} /></button>
         </div>
         {success ? (
           <div style={{ textAlign:'center', padding:'32px 0' }}>
             <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
-            <p style={{ color:'#10b981', fontWeight:600, fontSize:15, margin:0 }}>Saída registrada com sucesso!</p>
-            <button onClick={onClose} style={{ ...btnPrimary, marginTop:20, background:'#10b981' }}>Fechar</button>
+            <p style={{ color:'#ef4444', fontWeight:600, fontSize:15, margin:0 }}>Extração solicitada com sucesso!</p>
+            <button onClick={onClose} style={{ ...btnPrimary, marginTop:20, background:'#ef4444' }}>Fechar</button>
           </div>
         ) : (
           <>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <label style={labelStyle}>Produto *</label>
-                <select style={inputStyle} value={form.produto} onChange={e => handle('produto', e.target.value)}>
-                  <option value="">Selecionar...</option>
-                  {mockInventory.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name} ({p.qty} un.)</option>)}
-                </select>
+                <label style={labelStyle}>Pesquisar Peça (Nome ou Código) *</label>
+                <div style={{ position: 'relative' }}>
+                  <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: 10, top: 12 }} />
+                  <input style={{ ...inputStyle, paddingLeft: 34 }} placeholder="Digite para buscar..." value={form.search} onChange={e => handle('search', e.target.value)} />
+                </div>
               </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <label style={labelStyle}>Quantidade *</label>
-                <input style={inputStyle} type="number" min={1} placeholder="0" value={form.quantidade} onChange={e => handle('quantidade', e.target.value)} />
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6, gridColumn:'span 2' }}>
-                <label style={labelStyle}>Motivo</label>
-                <select style={inputStyle} value={form.motivo} onChange={e => handle('motivo', e.target.value)}>
-                  <option value="">Selecionar...</option>
-                  <option>Venda</option>
-                  <option>Uso interno</option>
-                  <option>Devolução ao fornecedor</option>
-                  <option>Avaria / Descarte</option>
-                </select>
-              </div>
+              
+              {form.search && filteredProducts.length > 0 && (
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  <label style={labelStyle}>Selecione a Célula/Estante *</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 150, overflowY: 'auto' }}>
+                    {filteredProducts.map(p => (
+                      <div 
+                        key={p.id}
+                        onClick={() => { handle('produtoCode', p.code); handle('posicao', p.position); }}
+                        style={{
+                          padding: '10px',
+                          borderRadius: '8px',
+                          background: form.posicao === p.position && form.produtoCode === p.code ? '#1f2937' : '#111827',
+                          border: `1px solid ${form.posicao === p.position && form.produtoCode === p.code ? '#ef4444' : '#374151'}`,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div>
+                          <div style={{ color: '#f3f4f6', fontWeight: 500, fontSize: 13 }}>{p.name} ({p.code})</div>
+                          <div style={{ color: '#9ca3af', fontSize: 12 }}>Posição: {p.position}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ color: '#10b981', fontWeight: 600, fontSize: 13 }}>Qtd: {p.qty}</div>
+                          <div style={{ color: '#9ca3af', fontSize: 12 }}>Val: {p.valDate || 'N/A'}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.produtoCode && form.posicao && (
+                <>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    <label style={labelStyle}>Quantidade a Extrair *</label>
+                    <input style={inputStyle} type="number" min={1} placeholder="0" value={form.quantidade} onChange={e => handle('quantidade', e.target.value)} />
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    <label style={labelStyle}>Motivo / Observação</label>
+                    <input style={inputStyle} placeholder="Opcional" value={form.motivo} onChange={e => handle('motivo', e.target.value)} />
+                  </div>
+                </>
+              )}
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
               <button onClick={onClose} style={btnSecondary}>Cancelar</button>
-              <button onClick={submit} disabled={loading} style={{ ...btnPrimary, background:'#ef4444', opacity: loading ? 0.7 : 1 }}>
-                {loading ? 'Enviando...' : 'Confirmar saída'}
+              <button 
+                onClick={submit} 
+                disabled={loading || !form.produtoCode || !form.posicao || !form.quantidade} 
+                style={{ ...btnPrimary, background:'#ef4444', opacity: (loading || !form.produtoCode || !form.posicao || !form.quantidade) ? 0.7 : 1 }}
+              >
+                {loading ? 'Processando...' : 'Confirmar extração'}
               </button>
             </div>
           </>
@@ -180,8 +281,19 @@ export default function Estoque() {
   const [filterEntry, setFilterEntry]       = useState('')
   const [filterVal, setFilterVal]           = useState('')
   const [selectedPallet, setSelectedPallet] = useState<Product | null>(null)
+  const [inventory, setInventory]           = useState<Product[]>([])
 
-  const filtered = mockInventory.filter(item => {
+  const loadInventory = () => {
+    fetch('http://localhost:8080/api/produtos')
+      .then(res => res.json())
+      .then(data => setInventory(data))
+  }
+
+  useEffect(() => {
+    loadInventory()
+  }, [])
+
+  const filtered = inventory.filter(item => {
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
                         item.code.toLowerCase().includes(search.toLowerCase())
     const matchEntry  = filterEntry ? item.entryDate === filterEntry : true
@@ -364,8 +476,8 @@ export default function Estoque() {
         )}
       </div>
 
-      {modal === 'entrada' && <ModalEntrada onClose={() => setModal(null)} />}
-      {modal === 'saida'   && <ModalSaida   onClose={() => setModal(null)} />}
+      {modal === 'entrada' && <ModalEntrada onClose={() => setModal(null)} inventory={inventory} onRefresh={loadInventory} />}
+      {modal === 'saida'   && <ModalSaida   onClose={() => setModal(null)} inventory={inventory} onRefresh={loadInventory} />}
     </div>
   )
 }
