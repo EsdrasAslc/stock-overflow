@@ -8,19 +8,21 @@ const char* password = "123456789";
 // Instancia o servidor WebSocket na porta 81 (Padrão para WebSockets)
 WebSocketsServer webSocket = WebSocketsServer(81);
 
+// Pino do Sensor KY-025
+const int SENSOR_PIN = 4;
+bool lastSensorState = HIGH;
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 50;
+
 // Variáveis de controle de movimento
 int targetX = 0, targetY = 0;
 int currentX = 0, currentY = 0;
 bool emMovimento = false;
-unsigned long lastMoveTime = 0;
 
 // ================================================================
 // FUNÇÃO PARA PROCESSAR COMANDOS RECEBIDOS VIA WEBSOCKET
 // ================================================================
-// Aqui é onde você vai implementar novas funcionalidades.
-// A comunicação é feita usando JSON, por exemplo: {"action": "move", "x": 100, "y": 50}
 void processCommand(uint8_t num, JsonDocument& doc) {
-  // Extrai a ação solicitada
   const char* action = doc["action"];
 
   if (action == nullptr) {
@@ -29,39 +31,31 @@ void processCommand(uint8_t num, JsonDocument& doc) {
     return;
   }
 
-  // --- IMPLEMENTE NOVAS FUNÇÕES AQUI ABAIXO ---
-
-  // 1. Comando de movimento (Ex: {"action": "move", "x": 150, "y": 200})
   if (strcmp(action, "move") == 0) {
-    targetX = doc["x"] | 0; // Pega o valor de x, se não existir assume 0
-    targetY = doc["y"] | 0; // Pega o valor de y, se não existir assume 0
+    targetX = doc["x"] | 0;
+    targetY = doc["y"] | 0;
     emMovimento = true;
     
     Serial.printf("Comando 'move' -> Alvo X: %d, Y: %d\n", targetX, targetY);
     webSocket.sendTXT(num, "{\"status\":\"aceito\",\"mensagem\":\"Iniciando movimento\"}");
   } 
   
-  // 2. Comando para parar o movimento imediatamente (Ex: {"action": "stop"})
   else if (strcmp(action, "stop") == 0) {
     emMovimento = false;
-    targetX = currentX; // Redefine o alvo para a posição atual
+    targetX = currentX;
     targetY = currentY;
     
     Serial.println("Comando 'stop' -> Parada de emergência!");
     webSocket.sendTXT(num, "{\"status\":\"parado\",\"mensagem\":\"Movimento interrompido\"}");
   }
 
-  // 3. Comando para consultar a posição atual (Ex: {"action": "status"})
   else if (strcmp(action, "status") == 0) {
     char buffer[100];
     snprintf(buffer, sizeof(buffer), "{\"status\":\"info\",\"x\":%d,\"y\":%d,\"movendo\":%s}", 
              currentX, currentY, emMovimento ? "true" : "false");
     webSocket.sendTXT(num, buffer);
   }
-
-  // Adicione novos "else if (strcmp(action, "nova_acao") == 0) { ... }" aqui!
   
-  // Ação não reconhecida
   else {
     Serial.printf("Comando desconhecido: %s\n", action);
     webSocket.sendTXT(num, "{\"status\":\"erro\",\"mensagem\":\"Acao desconhecida\"}");
@@ -80,8 +74,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     case WStype_CONNECTED: {
       IPAddress ip = webSocket.remoteIP(num);
       Serial.printf("[%u] Cliente conectado via WebSocket! IP: %d.%d.%d.%d\n", num, ip[0], ip[1], ip[2], ip[3]);
-      
-      // Envia uma mensagem de boas-vindas ao conectar
       webSocket.sendTXT(num, "{\"status\":\"conectado\",\"mensagem\":\"Bem-vindo ao servidor ESP32\"}");
       break;
     }
@@ -89,7 +81,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     case WStype_TEXT: {
       Serial.printf("[%u] Mensagem recebida: %s\n", num, payload);
       
-      // Tenta analisar o texto recebido como JSON
       JsonDocument doc;
       DeserializationError error = deserializeJson(doc, payload);
 
@@ -100,13 +91,11 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         return;
       }
 
-      // Distribui a execução de acordo com o comando no JSON
       processCommand(num, doc);
       break;
     }
     
     case WStype_BIN:
-      // Tratamento de dados binários se necessário
       Serial.printf("[%u] Binário recebido: %u bytes\n", num, length);
       break;
   }
@@ -117,6 +106,10 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 // ================================================================
 void setup() {
   Serial.begin(115200);
+
+  // Inicializa o pino do sensor KY-025
+  pinMode(SENSOR_PIN, INPUT_PULLUP);
+  lastSensorState = digitalRead(SENSOR_PIN);
 
   // Inicia conexão Wi-Fi
   WiFi.begin(ssid, password);
@@ -130,51 +123,73 @@ void setup() {
   
   // Inicia o servidor WebSocket na porta 81
   webSocket.begin();
-  // Registra a função de eventos
   webSocket.onEvent(webSocketEvent);
   
   Serial.println("Servidor WebSocket iniciado na porta 81.");
+  Serial.println("Aguardando comandos para leitura de sensor magnético em X e Y...");
 }
 
 // ================================================================
 // LOOP PRINCIPAL (LOOP)
 // ================================================================
 void loop() {
-  // Mantém o servidor WebSocket rodando. Deve ser chamado constantemente.
   webSocket.loop();
 
-  // --- LÓGICA DE MOVIMENTO (Executada continuamente em background) ---
   if (emMovimento) {
-    // IMPORTANTE: Não use delay() bloqueante para não derrubar o WebSocket.
-    // Usamos millis() para definir a cadência do motor (ex: a cada 30ms).
-    if (millis() - lastMoveTime > 30) {
-      lastMoveTime = millis();
-      
-      // Atualiza coordenadas em direção ao alvo
-      if (currentX < targetX) currentX++;
-      else if (currentX > targetX) currentX--;
+    bool currentSensorState = digitalRead(SENSOR_PIN);
+    
+    // Simples debounce para o sensor hall magnético
+    if (currentSensorState != lastSensorState) {
+      if (millis() - lastDebounceTime > debounceDelay) {
+        lastDebounceTime = millis();
+        
+        // Verifica transição (assumindo sensor ativo em LOW quando passa o ímã)
+        if (currentSensorState == LOW) {
+          Serial.println("[SENSOR] Ímã detectado!");
+          
+          // Move primeiro em X
+          if (currentX != targetX) {
+            if (currentX < targetX) currentX++;
+            else currentX--;
+            Serial.printf("[MOVIMENTO] Avançou em X -> X: %d, Y: %d\n", currentX, currentY);
+          }
+          // Depois que X chegou no alvo, move em Y
+          else if (currentY != targetY) {
+            if (currentY < targetY) currentY++;
+            else currentY--;
+            Serial.printf("[MOVIMENTO] Avançou em Y -> X: %d, Y: %d\n", currentX, currentY);
+          }
 
-      if (currentY < targetY) currentY++;
-      else if (currentY > targetY) currentY--;
+          // Envia a posição atual para TODOS os clientes conectados (broadcast)
+          char buffer[100];
+          snprintf(buffer, sizeof(buffer), "{\"status\":\"movendo\",\"x\":%d,\"y\":%d}", currentX, currentY);
+          webSocket.broadcastTXT(buffer);
 
-      // Envia a posição atual para TODOS os clientes conectados (broadcast)
-      char buffer[100];
-      snprintf(buffer, sizeof(buffer), "{\"status\":\"movendo\",\"x\":%d,\"y\":%d}", currentX, currentY);
-      webSocket.broadcastTXT(buffer);
-
-      // Verifica se chegou ao destino
-      if (currentX == targetX && currentY == targetY) {
-        if (targetX != 0 || targetY != 0) {
-          // Chegou no ponto desejado, agora a lógica original manda voltar pro 0,0
-          targetX = 0;
-          targetY = 0;
-          webSocket.broadcastTXT("{\"status\":\"retornando\",\"x\":0,\"y\":0}");
-        } else {
-          // Chegou de volta ao ponto de origem (0,0)
-          emMovimento = false;
-          webSocket.broadcastTXT("{\"status\":\"finalizado\",\"x\":0,\"y\":0}");
+          // Verifica se chegou ao destino
+          if (currentX == targetX && currentY == targetY) {
+            if (targetX != 0 || targetY != 0) {
+              // Chegou no ponto desejado, agora manda voltar pro 0,0
+              Serial.println("[MOVIMENTO] Alvo atingido! Iniciando retorno para base (0,0)...");
+              targetX = 0;
+              targetY = 0;
+              webSocket.broadcastTXT("{\"status\":\"retornando\",\"x\":0,\"y\":0}");
+            } else {
+              // Chegou de volta ao ponto de origem (0,0)
+              Serial.println("[MOVIMENTO] Base (0,0) atingida. Finalizando.");
+              emMovimento = false;
+              webSocket.broadcastTXT("{\"status\":\"finalizado\",\"x\":0,\"y\":0}");
+            }
+          }
         }
       }
+    }
+    lastSensorState = currentSensorState;
+  } else {
+    // Log periódico de aguardo (a cada 5 segundos)
+    static unsigned long lastWaitLogTime = 0;
+    if (millis() - lastWaitLogTime > 5000) {
+      lastWaitLogTime = millis();
+      Serial.printf("[STATUS] Aguardando comando... Posição atual -> X: %d, Y: %d\n", currentX, currentY);
     }
   }
 }
