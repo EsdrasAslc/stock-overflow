@@ -38,6 +38,12 @@ public class Produto {
     @Column(name = "data_validade")
     private String dataValidade;
 
+    @Column(name = "posicao_x", nullable = false)
+    private Integer posicaoX;
+
+    @Column(name = "posicao_y", nullable = false)
+    private Integer posicaoY;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estante_id", nullable = false)
     private Estante estante;

@@ -3,6 +3,7 @@ package com.stockoverflow.estoque_api.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockoverflow.estoque_api.config.Esp32WebSocketConfig;
+import com.stockoverflow.estoque_api.config.FrontendWebSocketHandler;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class Esp32WebSocketClient extends TextWebSocketHandler {
 
     private final WebSocketClient webSocketClient;
     private final Esp32WebSocketConfig config;
+    private final FrontendWebSocketHandler frontendWebSocketHandler;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private WebSocketSession session;
@@ -67,6 +69,7 @@ public class Esp32WebSocketClient extends TextWebSocketHandler {
             // Mensagens de telemetria/broadcasts contínuos são apenas logadas
             if ("movendo".equals(status) || "retornando".equals(status) || "finalizado".equals(status)) {
                 log.info("[ESP32] Telemetria: {}", payload);
+                frontendWebSocketHandler.broadcast(payload); // Repassa a telemetria ao Frontend
                 if ("finalizado".equals(status)) {
                     synchronized (this) {
                         if (this.completionFuture != null && !this.completionFuture.isDone()) {

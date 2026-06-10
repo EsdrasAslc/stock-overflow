@@ -48,64 +48,87 @@ public class ProdutoService {
                 .dataEntrada(dto.dataEntrada())
                 .dataValidade(dto.dataValidade())
                 .estante(estante)
+                .posicaoX(1) // Default or get from request if we update DTO
+                .posicaoY(1)
                 .build();
         return toDTO(repository.save(produto));
     }
 
     public ProdutoResponseDTO registrarEntrada(com.stockoverflow.estoque_api.dto.ProdutoEntradaDTO dto) {
-        Estante estante = estanteRepository.findByNome(dto.posicao()).orElseGet(() -> {
-            com.stockoverflow.estoque_api.model.Armazem armazem = armazemRepository.findAll().stream().findFirst()
-                    .orElseThrow(() -> new RuntimeException("Nenhum armazém disponível para criar estante"));
-            Estante nova = Estante.builder()
-                    .nome(dto.posicao())
-                    .capacidadeMaxima(100)
-                    .capacidadeAtual(0)
-                    .x(1) // default
-                    .y(1) // default
-                    .armazem(armazem)
+        Estante estante = estanteRepository.findById(dto.estanteId())
+                .orElseThrow(() -> new RuntimeException("Estante não encontrada"));
+
+        // Validar limites físicos da estante
+        if (dto.x() < 1 || dto.x() > estante.getX() || dto.y() < 1 || dto.y() > estante.getY()) {
+            throw new RuntimeException("Posição (" + dto.x() + ", " + dto.y() + ") é inválida para esta estante.");
+        }
+
+        // Validar capacidade máxima (baseada no total de produtos com quantidade > 0)
+        long slotsOcupados = repository.findByEstanteId(estante.getId()).stream()
+                .filter(p -> p.getQuantidade() > 0)
+                .count();
+        if (slotsOcupados >= estante.getCapacidadeMaxima()) {
+            throw new RuntimeException("A estante está cheia!");
+        }
+
+        // Verificar se a vaga está ocupada
+        Produto produtoExistente = repository.findByEstanteIdAndPosicaoXAndPosicaoY(estante.getId(), dto.x(), dto.y()).orElse(null);
+
+        if (produtoExistente != null) {
+            if (!produtoExistente.getCodigo().equals(dto.produto())) {
+                if (produtoExistente.getQuantidade() > 0) {
+                    throw new RuntimeException("A posição (" + dto.x() + ", " + dto.y() + ") já está ocupada por outro produto.");
+                } else {
+                    // Produto diferente, mas quantidade é 0. Podemos deletar ou sobrescrever?
+                    // Vamos criar um novo e remover o antigo (ou reaproveitar se a lógica permitir)
+                    repository.delete(produtoExistente);
+                    produtoExistente = null;
+                }
+            }
+        }
+
+        Produto produto;
+        if (produtoExistente != null) {
+            produto = produtoExistente;
+            produto.setQuantidade(produto.getQuantidade() + dto.quantidade());
+        } else {
+            // Busca dados de ref
+            List<Produto> existentes = repository.findByCodigo(dto.produto());
+            Produto ref = existentes.isEmpty() ? null : existentes.get(0);
+
+            produto = Produto.builder()
+                    .codigo(dto.produto())
+                    .nome(dto.nome() != null ? dto.nome() : (ref != null ? ref.getNome() : dto.produto()))
+                    .categoria(dto.categoria() != null ? dto.categoria() : (ref != null ? ref.getCategoria() : ""))
+                    .dataValidade(dto.dataValidade() != null ? dto.dataValidade() : (ref != null ? ref.getDataValidade() : null))
+                    .dataEntrada(java.time.LocalDate.now().toString())
+                    .quantidade(dto.quantidade())
+                    .posicaoX(dto.x())
+                    .posicaoY(dto.y())
+                    .estante(estante)
                     .build();
-            return estanteRepository.save(nova);
-        });
-        
-        Produto produto = repository.findByCodigoAndEstanteNome(dto.produto(), dto.posicao())
-                .orElseGet(() -> {
-                    // Busca se já existe um produto com esse código em outro lugar para reaproveitar os dados
-                    List<Produto> existentes = repository.findByCodigo(dto.produto());
-                    Produto ref = existentes.isEmpty() ? null : existentes.get(0);
-                    
-                    return Produto.builder()
-                            .codigo(dto.produto())
-                            .nome(dto.nome() != null ? dto.nome() : (ref != null ? ref.getNome() : dto.produto()))
-                            .categoria(dto.categoria() != null ? dto.categoria() : (ref != null ? ref.getCategoria() : ""))
-                            .dataValidade(dto.dataValidade() != null ? dto.dataValidade() : (ref != null ? ref.getDataValidade() : null))
-                            .dataEntrada(java.time.LocalDate.now().toString())
-                            .quantidade(0)
-                            .estante(estante)
-                            .build();
-                });
-        
-        produto.setQuantidade(produto.getQuantidade() + dto.quantidade());
+        }
+
         return toDTO(repository.save(produto));
     }
 
     public ProdutoResponseDTO registrarSaida(com.stockoverflow.estoque_api.dto.ProdutoSaidaDTO dto) {
-        Produto produto = repository.findByCodigoAndEstanteNome(dto.produto(), dto.posicao())
+        Produto produto = repository.findByEstanteIdAndPosicaoXAndPosicaoY(dto.estanteId(), dto.x(), dto.y())
                 .orElseThrow(() -> new RuntimeException("Produto não encontrado na posição selecionada"));
         
         if (produto.getQuantidade() < dto.quantidade()) {
             throw new RuntimeException("Quantidade insuficiente no estoque");
         }
         produto.setQuantidade(produto.getQuantidade() - dto.quantidade());
+        
         if (produto.getQuantidade() == 0) {
             repository.delete(produto);
             return null;
         }
+        
         return toDTO(repository.save(produto));
     }
 
-    public void deletar(String id) {
-        repository.deleteById(id);
-    }
 
     public ProdutoResponseDTO toDTO(Produto produto) {
         if (produto == null) return null;
@@ -114,7 +137,10 @@ public class ProdutoService {
                 produto.getCodigo(),
                 produto.getNome(),
                 produto.getCategoria(),
+                produto.getEstante() != null ? produto.getEstante().getId() : null,
                 produto.getEstante() != null ? produto.getEstante().getNome() : null,
+                produto.getPosicaoX(),
+                produto.getPosicaoY(),
                 produto.getDataEntrada(),
                 produto.getDataValidade(),
                 produto.getQuantidade()

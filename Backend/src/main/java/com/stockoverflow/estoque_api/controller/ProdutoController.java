@@ -43,9 +43,4 @@ public class ProdutoController {
         return service.registrarSaida(dto);
     }
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletar(@PathVariable String id) {
-        service.deletar(id);
-    }
 }

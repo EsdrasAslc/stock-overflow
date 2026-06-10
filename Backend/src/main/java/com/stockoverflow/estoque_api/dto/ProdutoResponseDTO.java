@@ -5,7 +5,10 @@ public record ProdutoResponseDTO(
     String code,
     String name,
     String category,
-    String position,
+    String estanteId,
+    String estanteNome,
+    Integer x,
+    Integer y,
     String entryDate,
     String valDate,
     Integer qty

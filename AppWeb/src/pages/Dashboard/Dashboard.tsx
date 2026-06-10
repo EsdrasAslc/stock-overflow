@@ -1,68 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Package, LayoutGrid, AlertTriangle, Ban, Bot, RefreshCw, Activity } from 'lucide-react'
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-interface KpiItem {
-  icon: React.ElementType
-  color: string
-  bg: string
-  value: string
-  label: string
-}
-
-interface CategoryItem {
-  label: string
-  value: number
-  color: string
-}
-
-interface LogItem {
-  id: number
-  operator: string
-  action: 'Retirar' | 'Guardar'
-  product: string
-  position: string
-  status: 'SUCESSO' | 'FALHA'
-  time: string
-}
-
-// ─── Dados simulados ──────────────────────────────────────────────────────────
-const mockKpis: KpiItem[] = [
-  { icon: Package,       color: '#10b981', bg: '#0d2e22', value: '48',    label: 'Produtos cadastrados' },
-  { icon: LayoutGrid,    color: '#3b82f6', bg: '#0d1f3d', value: '41/64', label: 'Slots ocupados'       },
-  { icon: AlertTriangle, color: '#f59e0b', bg: '#2d2006', value: '5',     label: 'Vencem em 30 dias'   },
-  { icon: Ban,           color: '#f87171', bg: '#2d0f0f', value: '2',     label: 'Lotes vencidos'      },
-]
-
-const mockCategories: CategoryItem[] = [
-  { label: 'Eletrônico', value: 18, color: '#10b981' },
-  { label: 'Mecânico',   value: 14, color: '#3b82f6' },
-  { label: 'Químico',    value: 9,  color: '#f59e0b' },
-  { label: 'Perecível',  value: 7,  color: '#8b5cf6' },
-]
-
-const mockStorage = { occupied: 41, free: 23, pct: 64 }
-
-const mockRobot = {
-  status: 'STANDBY',
-  temperatura: '38.2°C',
-  tempPct: 62,
-  bateria: 87,
-  ciclosTotais: '1.247',
-  uptime: '14h 32min',
-  ultimaManutencao: '12 dias atrás',
-  firmware: 'v2.4.1',
-}
-
-const mockLog: LogItem[] = [
-  { id:1, operator:'Leonardo Monteiro', action:'Retirar', product:'ESP32',            position:'E1L2C3', status:'SUCESSO', time:'5min atrás'  },
-  { id:2, operator:'Thiago',            action:'Guardar', product:'Sensor HC-SR04',   position:'E1L1C2', status:'SUCESSO', time:'18min atrás' },
-  { id:3, operator:'Eduardo',           action:'Retirar', product:'Resina Epóxi',     position:'E2L3C1', status:'FALHA',   time:'45min atrás' },
-  { id:4, operator:'Esdras',            action:'Guardar', product:'Bateria Li-Po 3S', position:'E1L3C4', status:'SUCESSO', time:'1h atrás'    },
-  { id:5, operator:'Isabella',          action:'Retirar', product:'Motor DC 12V',     position:'E2L2C2', status:'SUCESSO', time:'2h atrás'    },
-  { id:6, operator:'Italo',             action:'Guardar', product:'Cabo USB-C',       position:'E1L1C4', status:'SUCESSO', time:'3h atrás'    },
-  { id:7, operator:'Pedro',             action:'Retirar', product:'Resistor 10kΩ',    position:'E2L1C3', status:'SUCESSO', time:'4h atrás'    },
-]
+import { Package, LayoutGrid, AlertTriangle, Ban, RefreshCw, BarChart2, Activity } from 'lucide-react'
 
 // ─── Gráfico de rosca SVG ─────────────────────────────────────────────────────
 interface DonutChartProps {
@@ -78,7 +15,7 @@ function DonutChart({ data, size = 130, centerText }: DonutChartProps) {
   let cum  = 0
   const total = data.reduce((s, d) => s + d.value, 0)
   const slices = data.map(d => {
-    const pct  = d.value / total
+    const pct  = total > 0 ? d.value / total : 0
     const off  = c * (1 - cum)
     const dash = c * pct
     cum += pct
@@ -121,7 +58,7 @@ export default function Dashboard() {
     kpis: { produtosCadastrados: 0, slotsOcupados: '0/0', vencem30Dias: 0, lotesVencidos: 0 },
     categorias: [],
     armazenamento: { occupied: 0, free: 0, pct: 0 },
-    robo: { status: '-', temperatura: '-', tempPct: 0, bateria: 0, ciclosTotais: '-', uptime: '-', ultimaManutencao: '-', firmware: '-' },
+    topProducts: [],
     logs: []
   })
 
@@ -183,7 +120,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* ── Grid: Gráficos + Robô ── */}
+      {/* ── Grid: Gráficos + Top Produtos ── */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:20 }}>
 
         {/* Categorias */}
@@ -192,16 +129,22 @@ export default function Dashboard() {
             Categorias no estoque
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:20 }}>
-            <DonutChart data={metrics.categorias} size={120} />
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {metrics.categorias.map((c: any) => (
-                <div key={c.label} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
-                  <div style={{ width:10, height:10, borderRadius:'50%', background:c.color, flexShrink:0 }} />
-                  <span style={{ color:'#d1d5db' }}>{c.label}</span>
-                  <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{c.value}</span>
+            {metrics.categorias.length > 0 ? (
+              <>
+                <DonutChart data={metrics.categorias} size={120} />
+                <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight: 120, overflowY: 'auto', paddingRight: 4 }}>
+                  {metrics.categorias.map((c: any) => (
+                    <div key={c.label} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13 }}>
+                      <div style={{ width:10, height:10, borderRadius:'50%', background:c.color, flexShrink:0 }} />
+                      <span style={{ color:'#d1d5db' }}>{c.label}</span>
+                      <span style={{ color:'#f3f4f6', fontWeight:700, marginLeft:'auto', paddingLeft:8 }}>{c.value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+               <div style={{ textAlign:'center', color:'#6b7280', width: '100%', padding: '20px 0' }}>Sem categorias</div>
+            )}
           </div>
         </div>
 
@@ -239,55 +182,39 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Robô */}
+        {/* Top Produtos Analytics */}
         <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <Bot size={16} color="#d4a04a" />
+              <BarChart2 size={16} color="#3b82f6" />
               <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.12em', color:'#6b7280', textTransform:'uppercase' }}>
-                Telemetria do robô
+                Top Produtos (Unidades)
               </span>
             </div>
-            <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:99, background:'#1e2a1e', color:'#10b981', border:'1px solid #10b98133' }}>
-              ● {metrics.robo.status}
-            </span>
           </div>
 
-          <div style={{ marginBottom:10 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#9ca3af', marginBottom:4 }}>
-              <span>Temperatura</span>
-              <span style={{ color:'#f59e0b', fontWeight:600 }}>{metrics.robo.temperatura}</span>
-            </div>
-            <ProgressBar value={metrics.robo.tempPct} color="#f59e0b" />
-          </div>
-
-          <div style={{ marginBottom:16 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:'#9ca3af', marginBottom:4 }}>
-              <span>Bateria</span>
-              <span style={{ color:'#10b981', fontWeight:600 }}>{metrics.robo.bateria}%</span>
-            </div>
-            <ProgressBar value={metrics.robo.bateria} color="#10b981" />
-          </div>
-
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-            {([
-              ['Ciclos totais',     metrics.robo.ciclosTotais],
-              ['Uptime',            metrics.robo.uptime],
-              ['Última manutenção', metrics.robo.ultimaManutencao],
-              ['Firmware',          metrics.robo.firmware],
-            ] as [string, string][]).map(([label, value]) => (
-              <div key={label}>
-                <div style={{ fontSize:11, color:'#6b7280', marginBottom:2 }}>{label}</div>
-                <div style={{ fontSize:13, fontWeight:700, color:'#f3f4f6' }}>{value}</div>
-              </div>
-            ))}
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {metrics.topProducts && metrics.topProducts.length > 0 ? (
+               metrics.topProducts.map((tp: any, index: number) => (
+                 <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, color:'#d1d5db' }}>
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{tp.name}</span>
+                      <span style={{ color:'#3b82f6', fontWeight:700 }}>{tp.qty} un</span>
+                    </div>
+                    {/* Visual bar relative to max */}
+                    <ProgressBar value={(tp.qty / Math.max(...metrics.topProducts.map((x: any) => x.qty))) * 100} color="#3b82f6" />
+                 </div>
+               ))
+            ) : (
+               <div style={{ textAlign:'center', color:'#6b7280', padding: '20px 0' }}>Nenhum produto em estoque</div>
+            )}
           </div>
         </div>
 
       </div>
 
       {/* ── Log de movimentações ── */}
-      <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20 }}>
+      <div style={{ background:'#2a2a2a', border:'1px solid #3a3a3a', borderRadius:12, padding:20, marginBottom:20 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
           <Activity size={16} color="#10b981" />
           <span style={{ fontWeight:700, fontSize:15 }}>Log de movimentações</span>
@@ -302,7 +229,7 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {metrics.logs.map((item: any) => (
+            {metrics.logs?.map((item: any) => (
               <tr key={item.id} style={{ borderBottom:'1px solid #333' }}
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.background='#333'}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background='transparent'}>
@@ -310,11 +237,11 @@ export default function Dashboard() {
                 <td style={{ padding:'12px', fontSize:13 }}>
                   <span style={{
                     padding:'3px 10px', borderRadius:99, fontSize:11, fontWeight:700,
-                    background: item.action === 'Guardar' ? '#0d2e22' : '#2d0f0f',
-                    color: item.action === 'Guardar' ? '#10b981' : '#f87171',
-                    border: `1px solid ${item.action === 'Guardar' ? '#10b98133' : '#f8717133'}`
+                    background: item.action === 'INFO' ? '#0d2e22' : item.action === 'ERRO' ? '#2d0f0f' : '#333333',
+                    color: item.action === 'INFO' ? '#10b981' : item.action === 'ERRO' ? '#f87171' : '#d1d5db',
+                    border: `1px solid ${item.action === 'INFO' ? '#10b98133' : item.action === 'ERRO' ? '#f8717133' : '#3a3a3a'}`
                   }}>
-                    {item.action === 'Guardar' ? '↓ Guardar' : '↑ Retirar'}
+                    {item.action}
                   </span>
                 </td>
                 <td style={{ padding:'12px', fontSize:13, color:'#d1d5db' }}>{item.product}</td>

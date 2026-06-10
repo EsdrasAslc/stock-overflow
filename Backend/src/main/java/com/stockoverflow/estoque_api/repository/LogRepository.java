@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface LogRepository extends JpaRepository<Log, String> {
     Optional<Log> findFirstByOrderByTimestampDesc();
+    java.util.List<Log> findTop20ByOrderByTimestampDesc();
 }

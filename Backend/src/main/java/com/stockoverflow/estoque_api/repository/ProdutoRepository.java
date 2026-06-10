@@ -8,4 +8,5 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
     List<Produto> findByEstanteId(String estanteId);
     List<Produto> findByCodigo(String codigo);
     java.util.Optional<Produto> findByCodigoAndEstanteNome(String codigo, String estanteNome);
+    java.util.Optional<Produto> findByEstanteIdAndPosicaoXAndPosicaoY(String estanteId, Integer posicaoX, Integer posicaoY);
 }

@@ -44,8 +44,8 @@ CREATE TABLE estantes (
     nome             VARCHAR(255) NOT NULL,
     capacidade_maxima INTEGER      NOT NULL,
     capacidade_atual  INTEGER      NOT NULL,
-    x                INTEGER      NOT NULL DEFAULT 100,
-    y                INTEGER      NOT NULL DEFAULT 30,
+    x                INTEGER      NOT NULL DEFAULT 2,
+    y                INTEGER      NOT NULL DEFAULT 2,
     armazem_id       VARCHAR(36)  NOT NULL,
     robot_id         VARCHAR(36),
     FOREIGN KEY (armazem_id) REFERENCES armazens(id) ON DELETE CASCADE,
@@ -62,6 +62,8 @@ CREATE TABLE produtos (
     data_entrada  VARCHAR(20),
     data_saida    VARCHAR(20),
     data_validade VARCHAR(20),
+    posicao_x     INTEGER      NOT NULL,
+    posicao_y     INTEGER      NOT NULL,
     estante_id    VARCHAR(36)  NOT NULL,
     FOREIGN KEY (estante_id) REFERENCES estantes(id) ON DELETE CASCADE
 );

@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/EsdrasAslc/stock-overflow/issues"
   },
-  "homepage": "https://github.com/EsdrasAslc/stock-overflow#readme"
+  "homepage": "https://github.com/EsdrasAslc/stock-overflow#readme",
+  "dependencies": {
+    "ws": "^8.21.0"
+  }
 }

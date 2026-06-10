@@ -15,7 +15,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { label: 'Dashboard',    path: '/dashboard',    icon: LayoutDashboard },
   { label: 'Estoque',      path: '/estoque',      icon: Package },
-  { label: 'Movimentação', path: '/movimentacao', icon: ArrowLeftRight },
+
   { label: 'Relatórios',   path: '/relatorios',   icon: BarChart2 },
   { label: 'Configurações',path: '/config',       icon: Settings },
 ]

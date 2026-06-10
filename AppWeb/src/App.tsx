@@ -61,9 +61,9 @@ function App() {
       <Route path="/estoque" element={
         <ProtectedRoute><AppLayout><Estoque /></AppLayout></ProtectedRoute>
       } />
-      <Route path="/movimentacao" element={
+      {/* <Route path="/movimentacao" element={
         <ProtectedRoute><AppLayout><Movimentacao /></AppLayout></ProtectedRoute>
-      } />
+      } /> */}
       <Route path="/relatorios" element={
         <ProtectedRoute><AppLayout><Relatorios /></AppLayout></ProtectedRoute>
       } />

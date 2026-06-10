@@ -12,8 +12,14 @@ public record ProdutoEntradaDTO(
     @Positive(message = "A quantidade deve ser maior que zero")
     Integer quantidade,
 
-    @NotBlank(message = "A posição é obrigatória")
-    String posicao,
+    @NotBlank(message = "A estante é obrigatória")
+    String estanteId,
+
+    @NotNull(message = "A coordenada X é obrigatória")
+    Integer x,
+
+    @NotNull(message = "A coordenada Y é obrigatória")
+    Integer y,
 
     String fornecedor,
     String nf,

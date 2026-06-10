@@ -41,39 +41,13 @@ public class RobotCommandService {
         if ("move".equals(commandName)) {
             payload.put("action", "move");
 
-            // Traduz estante física (ex: "A3") para coordenadas x/y que o ESP32 entende
-            String targetShelf = request.getTargetShelf();
-            int x = 0;
-            int y = 0;
-
-            if (targetShelf != null && !targetShelf.trim().isEmpty()) {
-                String shelfTrimmed = targetShelf.trim().toUpperCase();
-                char letter = shelfTrimmed.charAt(0);
-                
-                // Mapeia Letra -> X
-                switch (letter) {
-                    case 'A' -> x = 100;
-                    case 'B' -> x = 200;
-                    case 'C' -> x = 300;
-                    default -> x = 50;
-                }
-
-                // Mapeia Número -> Y
-                if (shelfTrimmed.length() > 1) {
-                    try {
-                        int col = Integer.parseInt(shelfTrimmed.substring(1));
-                        y = col * 100;
-                    } catch (NumberFormatException e) {
-                        y = 100;
-                    }
-                } else {
-                    y = 100;
-                }
-            }
+            // Usa diretamente as coordenadas X e Y do request
+            int x = request.getTargetX() != null ? request.getTargetX() : 0;
+            int y = request.getTargetY() != null ? request.getTargetY() : 0;
             
             payload.put("x", x);
             payload.put("y", y);
-            log.info("[CMD] Traduzido estante '{}' para X: {} e Y: {} para o ESP32", targetShelf, x, y);
+            log.info("[CMD] Enviando movimento X: {} e Y: {} para o ESP32", x, y);
 
         } else if ("stop".equals(commandName)) {
             payload.put("action", "stop");
